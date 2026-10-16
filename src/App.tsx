@@ -91,10 +91,27 @@ export function App() {
       {/* 顶部导航 */}
       <Header onOpenHistory={() => setIsHistoryModalOpen(true)} />
 
-      {/* 主对弈区 */}
-      <main className="flex-1 max-w-6xl w-full mx-auto p-2 sm:p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-        {/* 左侧：棋盘区域 */}
-        <section className="lg:col-span-7 flex flex-col items-center justify-center">
+      {/* 主对弈区：主棋盘放大居中，其他面板分列两侧 */}
+      <main className="flex-1 max-w-[1600px] w-full mx-auto p-3 sm:p-5 md:p-6 grid grid-cols-1 lg:grid-cols-12 xl:grid-cols-[340px_1fr_340px] gap-6 items-center justify-center">
+        {/* 左侧区域：天梯积分卡与棋力难度选择 */}
+        <section className="lg:col-span-6 xl:col-span-1 space-y-4 w-full order-2 xl:order-1">
+          <ScoreCard
+            stats={stats}
+            currentTier={currentTier}
+            nextTier={nextTier}
+            progress={progress}
+          />
+          <DifficultySelector
+            difficulty={difficulty}
+            onSelectDifficulty={setDifficulty}
+            playerColor={playerColor}
+            onSelectPlayerColor={c => restart(c)}
+            disabled={isAiThinking || history.length > 0}
+          />
+        </section>
+
+        {/* 中间核心：放大居中的大棋盘 */}
+        <section className="lg:col-span-12 xl:col-span-1 flex flex-col items-center justify-center order-1 xl:order-2 w-full py-1">
           <Board
             board={board}
             turn={turn}
@@ -108,17 +125,8 @@ export function App() {
           />
         </section>
 
-        {/* 右侧：状态面板、计分卡、操作栏与棋谱 */}
-        <section className="lg:col-span-5 space-y-4 w-full">
-          {/* 天梯积分与段位展示 */}
-          <ScoreCard
-            stats={stats}
-            currentTier={currentTier}
-            nextTier={nextTier}
-            progress={progress}
-          />
-
-          {/* 快捷操作控制栏 */}
+        {/* 右侧区域：快捷控制栏与对局棋谱日志 */}
+        <section className="lg:col-span-6 xl:col-span-1 space-y-4 w-full order-3 xl:order-3">
           <ControlBar
             onUndo={undo}
             onHint={requestHint}
@@ -132,17 +140,6 @@ export function App() {
             isAiThinking={isAiThinking}
             isGameOver={isGameOver}
           />
-
-          {/* 难度选择与执子选择 */}
-          <DifficultySelector
-            difficulty={difficulty}
-            onSelectDifficulty={setDifficulty}
-            playerColor={playerColor}
-            onSelectPlayerColor={c => restart(c)}
-            disabled={isAiThinking || history.length > 0}
-          />
-
-          {/* 实时走法与对弈日志 */}
           <HistoryLog
             history={history}
             turn={turn}

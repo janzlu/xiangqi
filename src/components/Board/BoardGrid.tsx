@@ -1,7 +1,7 @@
 import React from 'react';
 
-export const CELL_SIZE = 60;
-export const PADDING = 34;
+export const CELL_SIZE = 72;
+export const PADDING = 40;
 export const BOARD_WIDTH = 8 * CELL_SIZE + PADDING * 2;
 export const BOARD_HEIGHT = 9 * CELL_SIZE + PADDING * 2;
 

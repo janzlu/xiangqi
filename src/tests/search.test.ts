@@ -30,4 +30,13 @@ describe('AI Search Engine', () => {
     expect(result.bestMove?.to.row).toBe(2);
     expect(result.bestMove?.to.col).toBe(0);
   });
+
+  it('measures search time on opening', () => {
+    const board = createInitialBoard();
+    board[5][6] = board[6][6];
+    board[6][6] = null;
+    const t0 = Date.now();
+    const result = findBestMove(board, 'black', DIFFICULTY_CONFIGS.intermediate);
+    console.log('Search duration:', Date.now() - t0, 'ms, nodes:', result.nodesEvaluated);
+  });
 });

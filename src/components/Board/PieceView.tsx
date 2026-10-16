@@ -53,7 +53,7 @@ export const PieceView: React.FC<PieceViewProps> = React.memo(({
       >
         {/* 楷体篆刻字符 */}
         <span
-          className={`font-serif font-black text-2xl sm:text-3xl tracking-tighter ${
+          className={`font-serif font-black text-2xl sm:text-3xl md:text-4xl tracking-tighter ${
             isRed ? 'text-red-700' : 'text-slate-900'
           }`}
           style={{

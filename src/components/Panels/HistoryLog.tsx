@@ -44,7 +44,7 @@ export const HistoryLog: React.FC<HistoryLogProps> = ({
   const isUserTurn = turn === playerColor;
 
   return (
-    <div className="bg-slate-900/80 backdrop-blur-md rounded-2xl p-4 border border-amber-900/40 text-slate-100 shadow-xl flex flex-col h-[280px]">
+    <div className="bg-slate-900/80 backdrop-blur-md rounded-2xl p-4 border border-amber-900/40 text-slate-100 shadow-xl flex flex-col h-[280px] xl:h-[380px]">
       {/* 头部状态条 */}
       <div className="flex items-center justify-between pb-3 border-b border-slate-800">
         <div className="flex items-center gap-2 text-xs font-bold text-amber-200">

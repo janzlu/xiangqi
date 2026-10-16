@@ -42,20 +42,20 @@ export const Board: React.FC<BoardProps> = ({
   const isRedInCheck = isInCheck(board, 'red');
   const isBlackInCheck = isInCheck(board, 'black');
 
-  // 棋子直径
-  const pieceDiameter = 50;
+  // 棋子直径（自适应放大）
+  const pieceDiameter = 62;
 
   return (
-    <div className="relative inline-block p-3 sm:p-5 rounded-2xl shadow-2xl bg-amber-950/20 backdrop-blur-md border border-amber-900/40">
+    <div className="relative w-full max-w-[740px] p-3 sm:p-5 rounded-3xl shadow-2xl bg-gradient-to-b from-amber-950/30 to-amber-950/10 backdrop-blur-md border border-amber-800/40 flex justify-center">
       {/* 棋盘木纹板底 */}
       <div
-        className="relative rounded-xl overflow-hidden shadow-inner"
+        className="relative w-full rounded-2xl overflow-hidden shadow-2xl"
         style={{
           width: '100%',
           maxWidth: `${BOARD_WIDTH}px`,
           aspectRatio: `${BOARD_WIDTH} / ${BOARD_HEIGHT}`,
           background: 'linear-gradient(135deg, #e8cca6 0%, #deb887 50%, #c99e6b 100%)',
-          boxShadow: 'inset 0 0 40px rgba(115, 65, 25, 0.45), 0 8px 20px rgba(0, 0, 0, 0.35)',
+          boxShadow: 'inset 0 0 50px rgba(115, 65, 25, 0.5), 0 16px 36px rgba(0, 0, 0, 0.5)',
         }}
       >
         {/* 背景木质纹理细线条 (纯 CSS 增强真实感) */}

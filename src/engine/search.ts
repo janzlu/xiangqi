@@ -4,6 +4,7 @@ import { applyMove, getLegalMoves } from '../core/rules';
 import { evaluateBoard, PIECE_BASE_VALUES } from '../core/evaluation';
 
 const CHECKMATE_SCORE = 99999;
+const MAX_QUIESCENCE_DEPTH = 3;
 
 /**
  * 启发式走法排序（优先搜索吃大子、以小吃大 MVV-LVA、将军等）
@@ -19,7 +20,7 @@ function scoreMoveForOrdering(board: BoardState, move: Move): number {
   }
 
   if (move.isCheck) {
-    score += 150;
+    score += 120;
   }
 
   return score;
@@ -31,31 +32,47 @@ function orderMoves(board: BoardState, moves: Move[]): Move[] {
 
 /**
  * 静态搜索 (Quiescence Search) 解决地平线效应：
- * 当搜索达到叶子节点时，继续对所有吃子走法进行评估，避免在对子中途错误判断局面
+ * 限制最大深度与超时阻断，防止吃子爆炸
  */
 function quiescenceSearch(
   board: BoardState,
   alpha: number,
   beta: number,
   color: PieceColor,
-  nodesRef: { count: number }
+  nodesRef: { count: number },
+  startTime: number,
+  timeLimitMs: number,
+  qDepth: number
 ): number {
   nodesRef.count++;
+  if (Date.now() - startTime > timeLimitMs || qDepth >= MAX_QUIESCENCE_DEPTH) {
+    return (color === 'red' ? 1 : -1) * evaluateBoard(board);
+  }
+
   const standPat = (color === 'red' ? 1 : -1) * evaluateBoard(board);
 
   if (standPat >= beta) return beta;
   if (standPat > alpha) alpha = standPat;
 
   const allMoves = getLegalMoves(board, color);
-  // 只搜索吃子动作
   const captureMoves = allMoves.filter(m => m.captured !== undefined);
-  const orderedCaptures = orderMoves(board, captureMoves);
+  if (captureMoves.length === 0) return standPat;
 
+  const orderedCaptures = orderMoves(board, captureMoves);
   const nextColor: PieceColor = color === 'red' ? 'black' : 'red';
 
   for (const move of orderedCaptures) {
     const nextBoard = applyMove(board, move);
-    const score = -quiescenceSearch(nextBoard, -beta, -alpha, nextColor, nodesRef);
+    const score = -quiescenceSearch(
+      nextBoard,
+      -beta,
+      -alpha,
+      nextColor,
+      nodesRef,
+      startTime,
+      timeLimitMs,
+      qDepth + 1
+    );
 
     if (score >= beta) return beta;
     if (score > alpha) alpha = score;
@@ -76,26 +93,26 @@ function alphaBeta(
   useQuiescence: boolean,
   nodesRef: { count: number },
   startTime: number,
-  timeLimitMs: number
+  timeLimitMs: number,
+  abortRef: { isAborted: boolean }
 ): number {
   nodesRef.count++;
 
-  // 超时检查
+  // 严格超时检查：一旦超时立刻标记并中止深入
   if (Date.now() - startTime > timeLimitMs) {
+    abortRef.isAborted = true;
     return (color === 'red' ? 1 : -1) * evaluateBoard(board);
   }
 
   const legalMoves = getLegalMoves(board, color);
 
-  // 无合法走法：若被将军为绝杀，若未被将军为欠行困毙（在象棋中皆判负）
   if (legalMoves.length === 0) {
-    return -CHECKMATE_SCORE + (10 - depth); // 越早绝杀分值越极端
+    return -CHECKMATE_SCORE + (10 - depth);
   }
 
-  // 达到搜索深度上限
   if (depth <= 0) {
     if (useQuiescence) {
-      return quiescenceSearch(board, alpha, beta, color, nodesRef);
+      return quiescenceSearch(board, alpha, beta, color, nodesRef, startTime, timeLimitMs, 0);
     }
     return (color === 'red' ? 1 : -1) * evaluateBoard(board);
   }
@@ -104,6 +121,8 @@ function alphaBeta(
   const nextColor: PieceColor = color === 'red' ? 'black' : 'red';
 
   for (const move of sortedMoves) {
+    if (abortRef.isAborted) break;
+
     const nextBoard = applyMove(board, move);
     const score = -alphaBeta(
       nextBoard,
@@ -114,7 +133,8 @@ function alphaBeta(
       useQuiescence,
       nodesRef,
       startTime,
-      timeLimitMs
+      timeLimitMs,
+      abortRef
     );
 
     if (score >= beta) {
@@ -129,7 +149,7 @@ function alphaBeta(
 }
 
 /**
- * AI 寻找最佳着法
+ * AI 寻找最佳着法（采用迭代加深 Iterative Deepening + 毫秒级超时熔断）
  */
 export function findBestMove(
   board: BoardState,
@@ -150,9 +170,8 @@ export function findBestMove(
     };
   }
 
-  // 初级 AI 增加适度随机性，提升趣味性
+  // 初级 AI：快速 1 层估值 + 适度随机性，耗时极短（< 30ms）
   if (config.id === 'novice') {
-    // 80% 几率走最稳走法，20% 几率从前 3 优走法中随机挑选
     const scoredMoves = legalMoves.map(move => {
       const nextBoard = applyMove(board, move);
       let s = (color === 'red' ? 1 : -1) * evaluateBoard(nextBoard);
@@ -172,41 +191,82 @@ export function findBestMove(
     };
   }
 
-  let bestMove: Move = legalMoves[0];
-  let bestScore = -Infinity;
-  let alpha = -Infinity;
-  const beta = Infinity;
+  // 迭代加深搜索 (Iterative Deepening)
+  // 先搜深度 1，再搜深度 2、3... 超时后立即安全降级使用上一完整层的结果
+  let confirmedBestMove: Move = legalMoves[0];
+  let confirmedScore = -CHECKMATE_SCORE;
+  let lastCompletedDepth = 1;
 
-  const sortedMoves = orderMoves(board, legalMoves);
+  const targetMaxDepth = config.depth;
   const nextColor: PieceColor = color === 'red' ? 'black' : 'red';
+  let candidateMoves = orderMoves(board, legalMoves);
 
-  for (const move of sortedMoves) {
-    const nextBoard = applyMove(board, move);
-    const score = -alphaBeta(
-      nextBoard,
-      config.depth - 1,
-      -beta,
-      -alpha,
-      nextColor,
-      config.useQuiescence,
-      nodesRef,
-      startTime,
-      config.timeLimitMs
-    );
+  for (let currentDepth = 1; currentDepth <= targetMaxDepth; currentDepth++) {
+    const abortRef = { isAborted: false };
+    let depthBestMove: Move = candidateMoves[0];
+    let depthBestScore = -Infinity;
+    let alpha = -Infinity;
+    const beta = Infinity;
 
-    if (score > bestScore) {
-      bestScore = score;
-      bestMove = move;
+    for (const move of candidateMoves) {
+      if (Date.now() - startTime > config.timeLimitMs) {
+        abortRef.isAborted = true;
+        break;
+      }
+
+      const nextBoard = applyMove(board, move);
+      const score = -alphaBeta(
+        nextBoard,
+        currentDepth - 1,
+        -beta,
+        -alpha,
+        nextColor,
+        config.useQuiescence,
+        nodesRef,
+        startTime,
+        config.timeLimitMs,
+        abortRef
+      );
+
+      if (abortRef.isAborted) break;
+
+      if (score > depthBestScore) {
+        depthBestScore = score;
+        depthBestMove = move;
+      }
+      if (score > alpha) {
+        alpha = score;
+      }
     }
-    if (score > alpha) {
-      alpha = score;
+
+    if (!abortRef.isAborted) {
+      confirmedBestMove = depthBestMove;
+      confirmedScore = depthBestScore;
+      lastCompletedDepth = currentDepth;
+
+      // 调整走法顺序：将当前深度最优走法置顶，极大提升后续深度的剪枝率
+      candidateMoves = [
+        depthBestMove,
+        ...candidateMoves.filter(
+          m => !(m.from.row === depthBestMove.from.row && m.from.col === depthBestMove.from.col &&
+                 m.to.row === depthBestMove.to.row && m.to.col === depthBestMove.to.col)
+        ),
+      ];
+    } else {
+      // 本层未完全搜完（已超时熔断），中止后续加深
+      break;
+    }
+
+    // 若当前时间已消耗超过 60% 限时，不再开启更深一层的搜索
+    if (Date.now() - startTime > config.timeLimitMs * 0.6) {
+      break;
     }
   }
 
   return {
-    bestMove,
-    score: bestScore,
-    depthReached: config.depth,
+    bestMove: confirmedBestMove,
+    score: confirmedScore,
+    depthReached: lastCompletedDepth,
     nodesEvaluated: nodesRef.count,
     durationMs: Date.now() - startTime,
   };

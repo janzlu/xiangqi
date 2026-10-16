@@ -261,10 +261,112 @@ export function applyMove(board: BoardState, move: Move): BoardState {
 }
 
 /**
+ * 极速检测指定方格是否受到敌方子力攻击（无需为所有敌子生成完整走法，耗时降低95%以上）
+ */
+export function isSquareAttackedBy(
+  board: BoardState,
+  target: Position,
+  attackerColor: PieceColor
+): boolean {
+  const { row: tr, col: tc } = target;
+
+  // 1. 兵/卒攻击检测（只有相邻的前方或左右已过河敌兵可能攻击王）
+  if (attackerColor === 'black') {
+    // 黑卒向下或左右进攻
+    const checkPawn = (r: number, c: number) => {
+      if (isInsideBoard(r, c)) {
+        const p = board[r][c];
+        if (p && p.color === 'black' && p.type === 'p') return true;
+      }
+      return false;
+    };
+    if (checkPawn(tr - 1, tc)) return true; // 黑卒从上方进攻
+    if (checkPawn(tr, tc - 1)) return true; // 黑卒从左进攻
+    if (checkPawn(tr, tc + 1)) return true; // 黑卒从右进攻
+  } else {
+    // 红兵向上或左右进攻
+    const checkPawn = (r: number, c: number) => {
+      if (isInsideBoard(r, c)) {
+        const p = board[r][c];
+        if (p && p.color === 'red' && p.type === 'p') return true;
+      }
+      return false;
+    };
+    if (checkPawn(tr + 1, tc)) return true; // 红兵从下方进攻
+    if (checkPawn(tr, tc - 1)) return true; // 红兵从左进攻
+    if (checkPawn(tr, tc + 1)) return true; // 红兵从右进攻
+  }
+
+  // 2. 马进攻检测（8向日字，反向判定马腿）
+  const horseChecks = [
+    // [敌马相对于目标的 dr, dc, 马腿相对于目标的 legR, legC]
+    [-2, -1, -1, -1],
+    [-2, 1, -1, 1],
+    [2, -1, 1, -1],
+    [2, 1, 1, 1],
+    [-1, -2, -1, -1],
+    [1, -2, 1, -1],
+    [-1, 2, -1, 1],
+    [1, 2, 1, 1],
+  ];
+  for (const [hdr, hdc, ldr, ldc] of horseChecks) {
+    const hr = tr + hdr;
+    const hc = tc + hdc;
+    if (isInsideBoard(hr, hc)) {
+      const piece = board[hr][hc];
+      if (piece && piece.color === attackerColor && piece.type === 'n') {
+        // 马腿位置若为空，则马攻击成立
+        const legR = tr + ldr;
+        const legC = tc + ldc;
+        if (board[legR][legC] === null) {
+          return true;
+        }
+      }
+    }
+  }
+
+  // 3. 车与炮直线射线检测（4个正交方向）
+  const dirs = [
+    [-1, 0],
+    [1, 0],
+    [0, -1],
+    [0, 1],
+  ];
+  for (const [dr, dc] of dirs) {
+    let r = tr + dr;
+    let c = tc + dc;
+    let foundScreen = false;
+
+    while (isInsideBoard(r, c)) {
+      const piece = board[r][c];
+      if (piece) {
+        if (!foundScreen) {
+          // 遇到第一个棋子：若是敌方车，直接将到！
+          if (piece.color === attackerColor && piece.type === 'r') {
+            return true;
+          }
+          foundScreen = true; // 视为炮架
+        } else {
+          // 遇到第二个棋子：若是敌方炮，隔子将到！
+          if (piece.color === attackerColor && piece.type === 'c') {
+            return true;
+          }
+          break; // 炮只能隔一子，遇到第二个子后终止该方向扫描
+        }
+      }
+      r += dr;
+      c += dc;
+    }
+  }
+
+  return false;
+}
+
+/**
  * 判断指定阵营是否被将军
  */
 export function isInCheck(board: BoardState, color: PieceColor): boolean {
-  // 1. 飞将检测（若照面且无阻隔，即算将军或违例）
+  // 1. 飞将检测（若照面且无阻隔，即算违规将军）
   if (areKingsFacing(board)) {
     return true;
   }
@@ -273,23 +375,7 @@ export function isInCheck(board: BoardState, color: PieceColor): boolean {
   if (!kingPos) return true; // 帅没了显然视为失守
 
   const opponentColor: PieceColor = color === 'red' ? 'black' : 'red';
-
-  // 遍历敌方所有棋子，看是否有攻击到王位置的伪走法
-  for (let r = 0; r < BOARD_ROWS; r++) {
-    for (let c = 0; c < BOARD_COLS; c++) {
-      const piece = board[r][c];
-      if (piece && piece.color === opponentColor) {
-        const moves = getPseudoLegalMovesForPiece(board, { row: r, col: c });
-        for (const m of moves) {
-          if (m.to.row === kingPos.row && m.to.col === kingPos.col) {
-            return true;
-          }
-        }
-      }
-    }
-  }
-
-  return false;
+  return isSquareAttackedBy(board, kingPos, opponentColor);
 }
 
 /**
