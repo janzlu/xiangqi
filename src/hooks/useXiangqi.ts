@@ -163,33 +163,40 @@ export function useXiangqi({ onGameOver }: UseXiangqiProps = {}) {
     setValidDestinations([]);
   }, [board, gameStatus, isAiThinking, playerColor, selectedPos, turn, validDestinations, executeMove]);
 
-  // 电脑自动走棋
+
+  // 电脑自动走棋：轮到电脑时自动计算并落子
   useEffect(() => {
-    if (gameStatus === 'checkmate' || gameStatus === 'stalemate' || gameStatus === 'resigned') {
+    if (gameStatus !== 'playing' && gameStatus !== 'check') {
       return;
     }
 
-    if (turn !== playerColor && !isAiThinking) {
-      let isMounted = true;
-      const timer = setTimeout(() => {
-        if (!isMounted) return;
-        setIsAiThinking(true);
+    if (turn !== playerColor) {
+      let isCancelled = false;
+      queueMicrotask(() => {
+        if (!isCancelled) setIsAiThinking(true);
+      });
 
-        computeAIMoveAsync(board, turn, difficultyConfig).then(result => {
-          if (!isMounted) return;
-          setIsAiThinking(false);
-          if (result.bestMove) {
-            executeMove(result.bestMove);
+      computeAIMoveAsync(board, turn, difficultyConfig)
+        .then(result => {
+          if (!isCancelled) {
+            setIsAiThinking(false);
+            if (result && result.bestMove) {
+              executeMove(result.bestMove);
+            }
+          }
+        })
+        .catch(err => {
+          console.error('AI move execution failed', err);
+          if (!isCancelled) {
+            setIsAiThinking(false);
           }
         });
-      }, 50);
 
       return () => {
-        isMounted = false;
-        clearTimeout(timer);
+        isCancelled = true;
       };
     }
-  }, [turn, playerColor, gameStatus, isAiThinking, board, difficultyConfig, executeMove]);
+  }, [turn, playerColor, gameStatus, board, difficultyConfig, executeMove]);
 
   // 悔棋（人机对战模式下回退两步：AI一步 + 玩家一步）
   const undo = useCallback(() => {

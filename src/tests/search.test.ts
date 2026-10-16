@@ -38,5 +38,17 @@ describe('AI Search Engine', () => {
     const t0 = Date.now();
     const result = findBestMove(board, 'black', DIFFICULTY_CONFIGS.intermediate);
     console.log('Search duration:', Date.now() - t0, 'ms, nodes:', result.nodesEvaluated);
+    expect(result.bestMove).not.toBeNull();
+  });
+
+  it('computeAIMoveAsync returns a valid move asynchronously', async () => {
+    const { computeAIMoveAsync } = await import('../engine/aiService');
+    const board = createInitialBoard();
+    board[5][6] = board[6][6];
+    board[6][6] = null;
+    const result = await computeAIMoveAsync(board, 'black', DIFFICULTY_CONFIGS.intermediate);
+    expect(result.bestMove).not.toBeNull();
+    expect(result.bestMove?.from).toBeDefined();
+    expect(result.bestMove?.to).toBeDefined();
   });
 });
