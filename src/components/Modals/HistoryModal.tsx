@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
 import { X, History, Trash2 } from 'lucide-react';
 import { MatchHistoryItem } from '../../types/score';
 
@@ -15,28 +15,16 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
   onResetStats,
   onClose,
 }) => {
-  const dialogRef = useRef<HTMLDialogElement>(null);
-
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-
-    if (isOpen) {
-      if (!dialog.open) dialog.showModal();
-    } else {
-      if (dialog.open) dialog.close();
-    }
-  }, [isOpen]);
-
   if (!isOpen) return null;
 
   return (
-    <dialog
-      ref={dialogRef}
-      onClose={onClose}
-      className="m-auto p-0 bg-transparent backdrop:bg-black/75 backdrop:backdrop-blur-sm outline-none border-none max-w-lg w-full"
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
     >
-      <div className="bg-slate-900 border border-amber-900/60 rounded-3xl p-6 text-slate-100 shadow-2xl relative max-h-[80vh] flex flex-col">
+      <div className="bg-slate-900 border border-amber-900/60 rounded-3xl p-6 text-slate-100 shadow-2xl relative max-w-lg w-full max-h-[80vh] flex flex-col animate-in zoom-in-95 duration-200">
         <div className="flex items-center justify-between pb-3 border-b border-slate-800 shrink-0">
           <div className="flex items-center gap-2">
             <History className="w-5 h-5 text-amber-400" />
@@ -50,7 +38,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
           </button>
         </div>
 
-        <div className="mt-4 flex-1 overflow-y-auto space-y-2.5 pr-1">
+        <div className="mt-4 flex-1 overflow-y-auto space-y-2.5 pr-1 scrollbar-thin scrollbar-thumb-slate-700">
           {history.length === 0 ? (
             <div className="py-12 text-center text-slate-500 text-sm">
               暂无历史对局，快开始您的第一盘棋吧！
@@ -113,7 +101,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                   onClose();
                 }
               }}
-              className="flex items-center gap-1.5 text-xs text-rose-400/80 hover:text-rose-300 py-1 px-3 rounded-lg hover:bg-rose-950/30 transition-all"
+              className="flex items-center gap-1.5 text-xs text-rose-400/80 hover:text-rose-300 py-1 px-3 rounded-lg hover:bg-rose-950/30 transition-all cursor-pointer"
             >
               <Trash2 className="w-3.5 h-3.5" />
               <span>清空战绩记录</span>
@@ -121,6 +109,6 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
           </div>
         )}
       </div>
-    </dialog>
+    </div>
   );
 };

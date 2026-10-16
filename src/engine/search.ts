@@ -2,6 +2,7 @@ import { BoardState, Move, PieceColor } from '../types/chess';
 import { AIMoveResult, DifficultyConfig } from '../types/ai';
 import { applyMove, getLegalMoves } from '../core/rules';
 import { evaluateBoard, PIECE_BASE_VALUES } from '../core/evaluation';
+import { boardToFen } from '../core/fen';
 
 const CHECKMATE_SCORE = 99999;
 const MAX_QUIESCENCE_DEPTH = 3;
@@ -149,12 +150,13 @@ function alphaBeta(
 }
 
 /**
- * AI 寻找最佳着法（采用迭代加深 Iterative Deepening + 毫秒级超时熔断）
+ * AI 寻找最佳着法（采用迭代加深 Iterative Deepening + 毫秒级超时熔断 + 防长将/防重复判定）
  */
 export function findBestMove(
   board: BoardState,
   color: PieceColor,
-  config: DifficultyConfig
+  config: DifficultyConfig,
+  recentFens: string[] = []
 ): AIMoveResult {
   const startTime = Date.now();
   const nodesRef = { count: 0 };
@@ -170,6 +172,8 @@ export function findBestMove(
     };
   }
 
+  const nextColor: PieceColor = color === 'red' ? 'black' : 'red';
+
   // 初级 AI：快速 1 层估值 + 适度随机性，耗时极短（< 30ms）
   if (config.id === 'novice') {
     const scoredMoves = legalMoves.map(move => {
@@ -177,6 +181,15 @@ export function findBestMove(
       let s = (color === 'red' ? 1 : -1) * evaluateBoard(nextBoard);
       if (move.captured) s += 40;
       if (move.isCheck) s += 20;
+
+      const nextFen = boardToFen(nextBoard, nextColor);
+      if (recentFens.includes(nextFen)) {
+        if (move.isCheck) {
+          s -= 100000; // 象棋铁律：长将不变作负，重罚强制变招
+        } else {
+          s -= 300;
+        }
+      }
       return { move, score: s };
     });
     scoredMoves.sort((a, b) => b.score - a.score);
@@ -198,7 +211,6 @@ export function findBestMove(
   let lastCompletedDepth = 1;
 
   const targetMaxDepth = config.depth;
-  const nextColor: PieceColor = color === 'red' ? 'black' : 'red';
   let candidateMoves = orderMoves(board, legalMoves);
 
   for (let currentDepth = 1; currentDepth <= targetMaxDepth; currentDepth++) {
@@ -215,7 +227,17 @@ export function findBestMove(
       }
 
       const nextBoard = applyMove(board, move);
-      const score = -alphaBeta(
+      const nextFen = boardToFen(nextBoard, nextColor);
+      let repetitionPenalty = 0;
+      if (recentFens.includes(nextFen)) {
+        if (move.isCheck) {
+          repetitionPenalty = 100000; // 严厉封杀长将
+        } else {
+          repetitionPenalty = 400; // 抑制无吃子无进展往返
+        }
+      }
+
+      let score = -alphaBeta(
         nextBoard,
         currentDepth - 1,
         -beta,
@@ -227,6 +249,8 @@ export function findBestMove(
         config.timeLimitMs,
         abortRef
       );
+
+      score -= repetitionPenalty;
 
       if (abortRef.isAborted) break;
 

@@ -41,12 +41,19 @@ export function moveToNotation(board: BoardState, move: Move): string {
   let prefix = '';
   if (samePiecesInCol.length === 2) {
     // 区分“前”和“后”
-    // 红方视角：上方（row较小）是靠前/敌方，下方（row较大）是靠后/己方底线
-    // 黑方视角：上方（row较小）是己方底线，下方（row较大）是靠前/敌方
-    const isFrontForRed = move.from.row < samePiecesInCol[0].row || move.from.row < samePiecesInCol[1].row;
-    const isFront = color === 'red' ? isFrontForRed : !isFrontForRed;
-
+    const sorted = [...samePiecesInCol].sort((a, b) =>
+      color === 'red' ? a.row - b.row : b.row - a.row
+    );
+    const isFront = sorted[0].row === move.from.row;
     prefix = isFront ? `前${pieceChar}` : `后${pieceChar}`;
+  } else if (samePiecesInCol.length === 3) {
+    // 同列三子（如三兵/三卒同列）：前、中、后
+    const sorted = [...samePiecesInCol].sort((a, b) =>
+      color === 'red' ? a.row - b.row : b.row - a.row
+    );
+    if (sorted[0].row === move.from.row) prefix = `前${pieceChar}`;
+    else if (sorted[1].row === move.from.row) prefix = `中${pieceChar}`;
+    else prefix = `后${pieceChar}`;
   } else {
     // 常规：棋子名 + 原列号
     prefix = `${pieceChar}${colToNotationNumber(move.from.col, color)}`;

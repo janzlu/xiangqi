@@ -19,8 +19,8 @@ export function useScore() {
     totalSteps: number,
     reason: string
   ): number => {
-    const oppConfig = DIFFICULTY_CONFIGS[difficulty];
-    const opponentRating = oppConfig.rating;
+    const oppConfig = DIFFICULTY_CONFIGS[difficulty] || DIFFICULTY_CONFIGS.intermediate;
+    const opponentRating = oppConfig?.rating ?? 1400;
 
     const ratingDelta = calculateRatingChange(
       stats.rating,
@@ -42,7 +42,7 @@ export function useScore() {
         hour: '2-digit',
         minute: '2-digit',
       }),
-      opponent: oppConfig.name,
+      opponent: oppConfig?.name ?? '电脑对手',
       difficulty,
       userColor,
       result,

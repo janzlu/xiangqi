@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
 import { Trophy, Frown, Award, RefreshCw, X } from 'lucide-react';
 import { PieceColor } from '../../types/chess';
 
@@ -23,34 +23,19 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
   onRestart,
   onClose,
 }) => {
-  const dialogRef = useRef<HTMLDialogElement>(null);
+  if (!isOpen) return null;
+
   const isWin = winner === playerColor;
   const isDraw = winner === null;
 
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-
-    if (isOpen) {
-      if (!dialog.open) {
-        dialog.showModal();
-      }
-    } else {
-      if (dialog.open) {
-        dialog.close();
-      }
-    }
-  }, [isOpen]);
-
-  if (!isOpen) return null;
-
   return (
-    <dialog
-      ref={dialogRef}
-      onClose={onClose}
-      className="m-auto p-0 bg-transparent backdrop:bg-black/75 backdrop:backdrop-blur-sm outline-none border-none max-w-sm w-full"
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
     >
-      <div className="bg-slate-900 border border-amber-900/60 rounded-3xl p-6 text-slate-100 shadow-2xl relative animate-in fade-in zoom-in duration-200">
+      <div className="bg-slate-900 border border-amber-900/60 rounded-3xl p-6 text-slate-100 shadow-2xl relative max-w-sm w-full animate-in zoom-in-95 duration-200">
         <button
           onClick={onClose}
           className="absolute top-4 right-4 p-1.5 rounded-full text-slate-400 hover:text-white bg-slate-800/80 transition-colors"
@@ -112,13 +97,13 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
               onClose();
               onRestart();
             }}
-            className="w-full py-3 rounded-xl font-bold bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-slate-950 flex items-center justify-center gap-2 shadow-lg hover:shadow-amber-500/20 transition-all"
+            className="w-full py-3 rounded-xl font-bold bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-slate-950 flex items-center justify-center gap-2 shadow-lg hover:shadow-amber-500/20 transition-all cursor-pointer"
           >
             <RefreshCw className="w-4 h-4" />
             <span>再弈一局</span>
           </button>
         </div>
       </div>
-    </dialog>
+    </div>
   );
 };

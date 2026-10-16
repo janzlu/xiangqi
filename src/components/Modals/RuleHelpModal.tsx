@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
 import { X, BookOpen, ShieldCheck, Sparkles } from 'lucide-react';
 
 interface RuleHelpModalProps {
@@ -7,28 +7,16 @@ interface RuleHelpModalProps {
 }
 
 export const RuleHelpModal: React.FC<RuleHelpModalProps> = ({ isOpen, onClose }) => {
-  const dialogRef = useRef<HTMLDialogElement>(null);
-
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-
-    if (isOpen) {
-      if (!dialog.open) dialog.showModal();
-    } else {
-      if (dialog.open) dialog.close();
-    }
-  }, [isOpen]);
-
   if (!isOpen) return null;
 
   return (
-    <dialog
-      ref={dialogRef}
-      onClose={onClose}
-      className="m-auto p-0 bg-transparent backdrop:bg-black/75 backdrop:backdrop-blur-sm outline-none border-none max-w-lg w-full"
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
     >
-      <div className="bg-slate-900 border border-amber-900/60 rounded-3xl p-6 text-slate-100 shadow-2xl relative max-h-[85vh] flex flex-col">
+      <div className="bg-slate-900 border border-amber-900/60 rounded-3xl p-6 text-slate-100 shadow-2xl relative max-w-lg w-full max-h-[85vh] flex flex-col animate-in zoom-in-95 duration-200">
         <div className="flex items-center justify-between pb-3 border-b border-slate-800 shrink-0">
           <div className="flex items-center gap-2">
             <BookOpen className="w-5 h-5 text-amber-400" />
@@ -42,7 +30,7 @@ export const RuleHelpModal: React.FC<RuleHelpModalProps> = ({ isOpen, onClose })
           </button>
         </div>
 
-        <div className="mt-4 space-y-4 overflow-y-auto pr-1 text-xs sm:text-sm text-slate-300 leading-relaxed">
+        <div className="mt-4 space-y-4 overflow-y-auto pr-1 text-xs sm:text-sm text-slate-300 leading-relaxed scrollbar-thin scrollbar-thumb-slate-700">
           <section className="space-y-1.5">
             <h3 className="font-bold text-amber-300 text-sm flex items-center gap-1.5">
               <ShieldCheck className="w-4 h-4" /> 棋子走法要诀
@@ -60,11 +48,14 @@ export const RuleHelpModal: React.FC<RuleHelpModalProps> = ({ isOpen, onClose })
 
           <section className="space-y-1.5">
             <h3 className="font-bold text-amber-300 text-sm flex items-center gap-1.5">
-              <Sparkles className="w-4 h-4" /> 胜负与中国象棋特色
+              <Sparkles className="w-4 h-4" /> 竞赛胜负与正规裁决
             </h3>
-            <p className="text-slate-400">
-              <strong>欠行困毙（判负）：</strong>不同于国际象棋的和棋，中国象棋中若某方轮到走棋却没有任何合法走法，直接判定该方失败。
-            </p>
+            <ul className="list-disc list-inside space-y-1 text-slate-400 pl-1">
+              <li><strong>欠行困毙（判负）：</strong>不同于国际象棋的和棋，中国象棋中若某方轮到走棋却没有任何合法走法，直接判定该方失败。</li>
+              <li><strong>单方面长将（判负）：</strong>单方面步步连续将军造成局面循环往复者，长将方必须主动变招，不变直接判负，严禁无赖长将！</li>
+              <li><strong>自然限着（判和）：</strong>双方连续 60 回合（120 步）无任何吃子，自动裁定和棋。</li>
+              <li><strong>三度重复（判和）：</strong>双方均无长将或长杀违例时，同一局面出现 3 次裁定和局。</li>
+            </ul>
           </section>
 
           <section className="space-y-1.5">
@@ -77,6 +68,6 @@ export const RuleHelpModal: React.FC<RuleHelpModalProps> = ({ isOpen, onClose })
           </section>
         </div>
       </div>
-    </dialog>
+    </div>
   );
 };

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
 import { X, Compass, ChevronRight } from 'lucide-react';
 import { EndgameChallenge } from '../../types/chess';
 import { ENDGAME_CHALLENGES } from '../../data/endgames';
@@ -14,28 +14,16 @@ export const EndgameModal: React.FC<EndgameModalProps> = ({
   onSelectChallenge,
   onClose,
 }) => {
-  const dialogRef = useRef<HTMLDialogElement>(null);
-
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-
-    if (isOpen) {
-      if (!dialog.open) dialog.showModal();
-    } else {
-      if (dialog.open) dialog.close();
-    }
-  }, [isOpen]);
-
   if (!isOpen) return null;
 
   return (
-    <dialog
-      ref={dialogRef}
-      onClose={onClose}
-      className="m-auto p-0 bg-transparent backdrop:bg-black/75 backdrop:backdrop-blur-sm outline-none border-none max-w-lg w-full"
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
     >
-      <div className="bg-slate-900 border border-amber-900/60 rounded-3xl p-6 text-slate-100 shadow-2xl relative">
+      <div className="bg-slate-900 border border-amber-900/60 rounded-3xl p-6 text-slate-100 shadow-2xl relative max-w-lg w-full animate-in zoom-in-95 duration-200">
         <div className="flex items-center justify-between pb-4 border-b border-slate-800">
           <div className="flex items-center gap-2">
             <Compass className="w-5 h-5 text-amber-400" />
@@ -49,7 +37,7 @@ export const EndgameModal: React.FC<EndgameModalProps> = ({
           </button>
         </div>
 
-        <div className="mt-4 space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+        <div className="mt-4 space-y-3 max-h-[60vh] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-slate-700">
           {ENDGAME_CHALLENGES.map(ch => {
             const diffColor =
               ch.difficulty === 'easy'
@@ -91,6 +79,6 @@ export const EndgameModal: React.FC<EndgameModalProps> = ({
           })}
         </div>
       </div>
-    </dialog>
+    </div>
   );
 };

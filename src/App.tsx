@@ -12,12 +12,14 @@ import { GameOverModal } from './components/Modals/GameOverModal';
 import { EndgameModal } from './components/Modals/EndgameModal';
 import { RuleHelpModal } from './components/Modals/RuleHelpModal';
 import { HistoryModal } from './components/Modals/HistoryModal';
+import { LLMConfigModal } from './components/Modals/LLMConfigModal';
 
 export function App() {
   const [isGameOverModalOpen, setIsGameOverModalOpen] = useState(false);
   const [isEndgamesModalOpen, setIsEndgamesModalOpen] = useState(false);
   const [isRulesModalOpen, setIsRulesModalOpen] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [isLLMConfigModalOpen, setIsLLMConfigModalOpen] = useState(false);
 
   const [lastGameOverReason, setLastGameOverReason] = useState('');
   const [lastRatingChange, setLastRatingChange] = useState(0);
@@ -76,6 +78,10 @@ export function App() {
     resign,
     toggleSound,
     setDifficulty,
+    llmConfig,
+    setLLMConfig,
+    toggleLLMMode,
+    latestAiThought,
   } = useXiangqi({
     onGameOver: handleGameOver,
   });
@@ -89,7 +95,11 @@ export function App() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-[#18110b] to-slate-950 text-slate-100 flex flex-col font-sans selection:bg-amber-500 selection:text-slate-950">
       {/* 顶部导航 */}
-      <Header onOpenHistory={() => setIsHistoryModalOpen(true)} />
+      <Header
+        onOpenHistory={() => setIsHistoryModalOpen(true)}
+        onOpenLLMConfig={() => setIsLLMConfigModalOpen(true)}
+        isLLMActive={llmConfig.enabled}
+      />
 
       {/* 主对弈区：主棋盘放大居中，其他面板分列两侧 */}
       <main className="flex-1 max-w-[1600px] w-full mx-auto p-3 sm:p-5 md:p-6 grid grid-cols-1 lg:grid-cols-12 xl:grid-cols-[340px_1fr_340px] gap-6 items-center justify-center">
@@ -107,6 +117,10 @@ export function App() {
             playerColor={playerColor}
             onSelectPlayerColor={c => restart(c)}
             disabled={isAiThinking || history.length > 0}
+            isLLMMode={llmConfig.enabled}
+            onToggleLLMMode={toggleLLMMode}
+            onOpenLLMConfig={() => setIsLLMConfigModalOpen(true)}
+            llmConfig={llmConfig}
           />
         </section>
 
@@ -146,6 +160,8 @@ export function App() {
             playerColor={playerColor}
             gameStatus={gameStatus}
             isAiThinking={isAiThinking}
+            latestAiThought={latestAiThought}
+            isLLMMode={llmConfig.enabled}
           />
         </section>
       </main>
@@ -178,6 +194,13 @@ export function App() {
         history={stats.history}
         onResetStats={resetStats}
         onClose={() => setIsHistoryModalOpen(false)}
+      />
+
+      <LLMConfigModal
+        isOpen={isLLMConfigModalOpen}
+        config={llmConfig}
+        onSave={setLLMConfig}
+        onClose={() => setIsLLMConfigModalOpen(false)}
       />
     </div>
   );

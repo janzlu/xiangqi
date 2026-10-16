@@ -2,13 +2,16 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import confetti from 'canvas-confetti';
 import { BoardState, EndgameChallenge, GameStatus, Move, MoveRecord, PieceColor, Position } from '../types/chess';
 import { AIDifficulty, DifficultyConfig } from '../types/ai';
+import { LLMConfig } from '../types/llm';
 import { createInitialBoard, DIFFICULTY_CONFIGS } from '../core/constants';
 import { applyMove, getLegalDestinationsForPosition, getLegalMoves, isInCheck } from '../core/rules';
 import { moveToNotation } from '../core/notation';
-import { fenToBoard } from '../core/fen';
+import { fenToBoard, boardToFen } from '../core/fen';
+import { evaluateRepetitionAndRules } from '../core/repetition';
 import { computeAIMoveAsync } from '../engine/aiService';
 import { soundManager } from '../services/audio';
 import { loadUserPreferences, saveUserPreferences } from '../services/storage';
+import { loadLLMConfig, saveLLMConfig } from '../services/llmStorage';
 
 export interface GameOverDetails {
   totalSteps: number;
@@ -22,6 +25,8 @@ interface UseXiangqiProps {
 
 export function useXiangqi({ onGameOver }: UseXiangqiProps = {}) {
   const [prefs] = useState(() => loadUserPreferences());
+  const [llmConfig, setLLMConfigState] = useState<LLMConfig>(() => loadLLMConfig());
+  const [latestAiThought, setLatestAiThought] = useState<string>('');
 
   const initialBoardRef = useRef<BoardState>(createInitialBoard());
   const initialTurnRef = useRef<PieceColor>('red');
@@ -52,6 +57,20 @@ export function useXiangqi({ onGameOver }: UseXiangqiProps = {}) {
   useEffect(() => {
     saveUserPreferences({ soundEnabled, difficulty, playerColor });
   }, [soundEnabled, difficulty, playerColor]);
+
+  // 更新并保存 LLM 配置
+  const setLLMConfig = useCallback((newConfig: LLMConfig) => {
+    setLLMConfigState(newConfig);
+    saveLLMConfig(newConfig);
+  }, []);
+
+  const toggleLLMMode = useCallback((enabled: boolean) => {
+    setLLMConfigState(prev => {
+      const updated = { ...prev, enabled };
+      saveLLMConfig(updated);
+      return updated;
+    });
+  }, []);
 
   // 执行走子逻辑
   const executeMove = useCallback((move: Move) => {
@@ -97,30 +116,44 @@ export function useXiangqi({ onGameOver }: UseXiangqiProps = {}) {
       boardSnapshot: nextBoard,
     };
 
+    const nextHistory = [...history, newRecord];
+
+    // 如果未产生绝杀或欠行，进一步检验象棋竞赛规则：长将裁决、三度重复局面及自然限着
+    if (nextStatus !== 'checkmate' && nextStatus !== 'stalemate') {
+      const repResult = evaluateRepetitionAndRules(nextHistory, nextBoard, nextTurn);
+      if (repResult.isGameOver) {
+        nextStatus = repResult.type === 'perpetual_check' ? 'checkmate' : 'draw';
+        gameWinner = repResult.winner;
+        endReason = repResult.reason;
+      }
+    }
+
     setBoard(nextBoard);
     setLastMove(move);
-    setHistory(prev => [...prev, newRecord]);
+    setHistory(nextHistory);
     setSelectedPos(null);
     setValidDestinations([]);
     setHintMove(null);
     setTurn(nextTurn);
     setGameStatus(nextStatus);
 
-    if (nextStatus === 'checkmate' || nextStatus === 'stalemate') {
+    if (nextStatus === 'checkmate' || nextStatus === 'stalemate' || nextStatus === 'draw') {
       setWinner(gameWinner);
       if (gameWinner === playerColor) {
         soundManager.playVictory();
         confetti({ particleCount: 120, spread: 70, origin: { y: 0.6 } });
+      } else if (gameWinner === null) {
+        // 握手言和
       } else {
         soundManager.playDefeat();
       }
       onGameOver?.(gameWinner, endReason, {
-        totalSteps: history.length + 1,
+        totalSteps: nextHistory.length,
         userColor: playerColor,
         difficulty,
       });
     }
-  }, [board, turn, history.length, playerColor, difficulty, onGameOver]);
+  }, [board, turn, history, playerColor, difficulty, onGameOver]);
 
   // 点击选择棋子或落子
   const handleSquareClick = useCallback((pos: Position) => {
@@ -163,7 +196,6 @@ export function useXiangqi({ onGameOver }: UseXiangqiProps = {}) {
     setValidDestinations([]);
   }, [board, gameStatus, isAiThinking, playerColor, selectedPos, turn, validDestinations, executeMove]);
 
-
   // 电脑自动走棋：轮到电脑时自动计算并落子
   useEffect(() => {
     if (gameStatus !== 'playing' && gameStatus !== 'check') {
@@ -176,10 +208,18 @@ export function useXiangqi({ onGameOver }: UseXiangqiProps = {}) {
         if (!isCancelled) setIsAiThinking(true);
       });
 
-      computeAIMoveAsync(board, turn, difficultyConfig)
+      const recentFens = history.slice(-8).map(r => {
+        const nextC: PieceColor = r.color === 'red' ? 'black' : 'red';
+        return boardToFen(r.boardSnapshot, nextC);
+      });
+
+      computeAIMoveAsync(board, turn, difficultyConfig, llmConfig, recentFens)
         .then(result => {
           if (!isCancelled) {
             setIsAiThinking(false);
+            if (result.thought) {
+              setLatestAiThought(result.thought);
+            }
             if (result && result.bestMove) {
               executeMove(result.bestMove);
             }
@@ -196,7 +236,7 @@ export function useXiangqi({ onGameOver }: UseXiangqiProps = {}) {
         isCancelled = true;
       };
     }
-  }, [turn, playerColor, gameStatus, board, difficultyConfig, executeMove]);
+  }, [turn, playerColor, gameStatus, board, difficultyConfig, llmConfig, history, executeMove]);
 
   // 悔棋（人机对战模式下回退两步：AI一步 + 玩家一步）
   const undo = useCallback(() => {
@@ -228,6 +268,7 @@ export function useXiangqi({ onGameOver }: UseXiangqiProps = {}) {
     setHintMove(null);
     setGameStatus('playing');
     setWinner(null);
+    setLatestAiThought('');
   }, [history, isAiThinking, playerColor, turn]);
 
   // 重新开局
@@ -246,6 +287,7 @@ export function useXiangqi({ onGameOver }: UseXiangqiProps = {}) {
     setHistory([]);
     setIsAiThinking(false);
     setHintMove(null);
+    setLatestAiThought('');
   }, []);
 
   // 载入残局挑战
@@ -264,24 +306,35 @@ export function useXiangqi({ onGameOver }: UseXiangqiProps = {}) {
     setHistory([]);
     setIsAiThinking(false);
     setHintMove(null);
+    setLatestAiThought('');
   }, []);
 
   // 提示下一步
   const requestHint = useCallback(async () => {
     if (isAiThinking || turn !== playerColor) return;
     setIsAiThinking(true);
-    const result = await computeAIMoveAsync(board, turn, {
-      ...difficultyConfig,
-      depth: Math.max(3, difficultyConfig.depth),
-      timeLimitMs: 2000,
+    const recentFens = history.slice(-8).map(r => {
+      const nextC: PieceColor = r.color === 'red' ? 'black' : 'red';
+      return boardToFen(r.boardSnapshot, nextC);
     });
+    const result = await computeAIMoveAsync(
+      board,
+      turn,
+      {
+        ...difficultyConfig,
+        depth: Math.max(3, difficultyConfig.depth),
+        timeLimitMs: 2000,
+      },
+      undefined,
+      recentFens
+    );
     setIsAiThinking(false);
     if (result.bestMove) {
       setHintMove(result.bestMove);
       setSelectedPos(result.bestMove.from);
       setValidDestinations([result.bestMove.to]);
     }
-  }, [isAiThinking, turn, playerColor, board, difficultyConfig]);
+  }, [isAiThinking, turn, playerColor, board, difficultyConfig, history]);
 
   // 认输
   const resign = useCallback(() => {
@@ -326,5 +379,9 @@ export function useXiangqi({ onGameOver }: UseXiangqiProps = {}) {
     toggleSound,
     setDifficulty,
     setPlayerColor,
+    llmConfig,
+    setLLMConfig,
+    toggleLLMMode,
+    latestAiThought,
   };
 }

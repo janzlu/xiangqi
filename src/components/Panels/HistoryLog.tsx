@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { MoveRecord, PieceColor, GameStatus } from '../../types/chess';
-import { ScrollText, Swords, AlertCircle } from 'lucide-react';
+import { ScrollText, Swords, AlertCircle, Sparkles } from 'lucide-react';
 
 interface HistoryLogProps {
   history: MoveRecord[];
@@ -8,6 +8,8 @@ interface HistoryLogProps {
   playerColor: PieceColor;
   gameStatus: GameStatus;
   isAiThinking: boolean;
+  latestAiThought?: string;
+  isLLMMode?: boolean;
 }
 
 export const HistoryLog: React.FC<HistoryLogProps> = ({
@@ -16,6 +18,8 @@ export const HistoryLog: React.FC<HistoryLogProps> = ({
   playerColor,
   gameStatus,
   isAiThinking,
+  latestAiThought,
+  isLLMMode,
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -44,7 +48,7 @@ export const HistoryLog: React.FC<HistoryLogProps> = ({
   const isUserTurn = turn === playerColor;
 
   return (
-    <div className="bg-slate-900/80 backdrop-blur-md rounded-2xl p-4 border border-amber-900/40 text-slate-100 shadow-xl flex flex-col h-[280px] xl:h-[380px]">
+    <div className="bg-slate-900/80 backdrop-blur-md rounded-2xl p-4 border border-amber-900/40 text-slate-100 shadow-xl flex flex-col h-[320px] xl:h-[420px]">
       {/* 头部状态条 */}
       <div className="flex items-center justify-between pb-3 border-b border-slate-800">
         <div className="flex items-center gap-2 text-xs font-bold text-amber-200">
@@ -69,7 +73,9 @@ export const HistoryLog: React.FC<HistoryLogProps> = ({
             }`}
           >
             {isAiThinking
-              ? '电脑思考中...'
+              ? isLLMMode
+                ? '大模型推演中...'
+                : '电脑思考中...'
               : isUserTurn
               ? '轮到您走棋'
               : '等待电脑'}
@@ -96,16 +102,29 @@ export const HistoryLog: React.FC<HistoryLogProps> = ({
               <span className="w-8 text-slate-500">{r.round}.</span>
               <span className="flex-1 text-red-400 font-semibold tracking-wide">
                 {r.red?.notation || ''}
-                {r.red?.move.isCheck ? '+' : ''}
+                {r.red?.move?.isCheck ? '+' : ''}
               </span>
               <span className="flex-1 text-slate-300 font-semibold tracking-wide">
                 {r.black?.notation || ''}
-                {r.black?.move.isCheck ? '+' : ''}
+                {r.black?.move?.isCheck ? '+' : ''}
               </span>
             </div>
           ))
         )}
       </div>
+
+      {/* 大模型战术心法解读 */}
+      {latestAiThought && (
+        <div className="mt-2.5 p-2.5 rounded-xl bg-slate-950/70 border border-amber-500/30 text-xs shrink-0 animate-in fade-in duration-300">
+          <div className="flex items-center gap-1.5 text-amber-300 font-bold mb-1">
+            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+            <span>{isLLMMode ? '大模型心法解读' : 'AI 推演分析'}</span>
+          </div>
+          <p className="text-slate-300 text-[11px] leading-relaxed font-sans">
+            {latestAiThought}
+          </p>
+        </div>
+      )}
     </div>
   );
 };

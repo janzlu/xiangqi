@@ -79,10 +79,10 @@ export const Board: React.FC<BoardProps> = ({
 
               const isSelected = selectedPos?.row === r && selectedPos?.col === c;
               const isValidDest = validDestinations.some(d => d.row === r && d.col === c);
-              const isLastFrom = lastMove?.from.row === r && lastMove?.from.col === c;
-              const isLastTo = lastMove?.to.row === r && lastMove?.to.col === c;
-              const isHint = hintMove?.from.row === r && hintMove?.from.col === c ||
-                             hintMove?.to.row === r && hintMove?.to.col === c;
+              const isLastFrom = lastMove?.from?.row === r && lastMove?.from?.col === c;
+              const isLastTo = lastMove?.to?.row === r && lastMove?.to?.col === c;
+              const isHint = (hintMove?.from?.row === r && hintMove?.from?.col === c) ||
+                             (hintMove?.to?.row === r && hintMove?.to?.col === c);
 
               const isKingInCheck =
                 (piece?.type === 'k' && piece?.color === 'red' && isRedInCheck) ||

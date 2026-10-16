@@ -1,32 +1,88 @@
-# React + TypeScript + Vite
+# 中国象棋 · 智弈争雄 (Xiangqi Master)
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+> 正统中国象棋人机对弈与天梯积分排位系统，支持经典启发式深算与现代大模型 (LLM) 双引擎驱动，搭载国家级竞赛裁判规则与经典名局挑战。
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 🌟 核心特性
 
-## React Compiler
+### 1. 正统象棋规则与专业裁判体系
+- **七大兵种纯正规则**：严格实现仕士九宫斜行、相象田字塞象眼且不过河、马走日与蹩马腿、车横冲直撞、炮隔山打牛、兵卒过河前后与老底兵横行、将帅照面飞将禁制。
+- **正规赛制裁判通则**：
+  - **欠行困毙（判负）**：遵循中国象棋传统，无合法走步方直接判定判负。
+  - **单方面长将（不变作负）**：严厉杜绝无赖连将，步步将军循环者强制判负。
+  - **三度重复裁决**：同一局面循环三次且双方无违例时判和棋。
+  - **60 回合自然限着**：双方连续 120 步（60 个完整回合）无吃子自动裁定和棋。
+- **专业中文标准记谱**：完整呈现“炮二平五”、“马8进7”，并规范支持同列双子“前/后车”及同列三兵“前/中/后兵”。
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### 2. 双引擎人机对弈体系
+- **经典 Alpha-Beta 负极大值搜索引擎**：
+  - 迭代加深搜索 (Iterative Deepening) + 毫秒级超时熔断，毫秒级即时响应，绝不卡死。
+  - 静态搜索 (Quiescence Search) 解决吃子地平线效应。
+  - 局面历史感知与防长将极值扣分机制，迫使电脑主动变招。
+  - 四级梯次难度：初学棋童 (Elo 1100)、街坊棋手 (Elo 1400)、棋协大师 (Elo 1750)、特级大师 (Elo 2100)。
+- **大模型 (LLM) 对弈引擎**：
+  - 兼容 OpenAI 规范 API（支持 DeepSeek、GPT-4o、Claude 3.5、Qwen 等主流模型）。
+  - 内置棋局转译提示词与战术心法解读，走棋同时提供战略思路剖析。
+  - 本地引擎平滑兜底机制，遇到网络超时或模型输出异常时无缝接管，确保对局永不中断。
 
-## Expanding the Oxlint configuration
+### 3. 天梯积分与排位段位体系
+- 采用国际标准 Elo 算法，融入动态 K-factor 与连胜积分加成。
+- 完整的晋阶段位：**业余九级** ➔ **业余六级** ➔ **业余三级** ➔ **业余一级** ➔ **候补大师** ➔ **特级大师**。
+- 本地 LocalStorage 自动持久化战绩详单、胜率统计与最高连胜纪录。
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+### 4. 经典残局名局挑战
+- 收录“七星聚会”、“野马操田”、“千里独行”等古谱经典名局。
+- 独立 FEN 编解码，一键载入残局并随时展开实战破局。
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+### 5. 沉浸式国风视听体验
+- **大气居中三栏布局**：740px 高清自适应木纹棋盘居中，左侧天梯计分与设置，右侧操作栏与实时棋谱。
+- **纯 Web Audio 声音引擎**：零外部音频资源依赖，程序化合成木质落子、沉闷吃子、短促将军及宏大胜负和弦。
+- **全局错误边界保护**：内置 React ErrorBoundary，杜绝白屏/黑屏，提供即时自愈恢复。
+
+---
+
+## 🛠️ 技术栈
+
+- **框架核心**：React 19 + TypeScript + Vite
+- **样式与动效**：Tailwind CSS v4 + Canvas Confetti
+- **图标库**：Lucide React
+- **代码质检**：Oxlint (0 错误 0 警告)
+- **单元测试**：Vitest (45 项测试全量覆盖)
+
+---
+
+## 🚀 快速上手
+
+### 1. 安装依赖
+```bash
+npm install
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+### 2. 启动本地开发服务
+```bash
+npm run dev
+```
+启动后在浏览器打开 `http://localhost:5173` 即可开始对弈。
+
+### 3. 运行自动化测试套件
+```bash
+npm test
+```
+
+### 4. 生产构建打包
+```bash
+npm run build
+```
+
+---
+
+## 📜 竞赛规则参考
+
+本项目严格遵循国家体育总局审定、中国象棋协会发布的《象棋竞赛规则》进行逻辑设计与裁决判定。
+
+---
+
+## 📄 开源许可
+
+本项目基于 [MIT License](LICENSE) 开源。

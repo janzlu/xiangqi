@@ -1,11 +1,17 @@
 import React from 'react';
-import { History } from 'lucide-react';
+import { History, Sparkles } from 'lucide-react';
 
 interface HeaderProps {
   onOpenHistory: () => void;
+  onOpenLLMConfig: () => void;
+  isLLMActive?: boolean;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onOpenHistory }) => {
+export const Header: React.FC<HeaderProps> = ({
+  onOpenHistory,
+  onOpenLLMConfig,
+  isLLMActive,
+}) => {
   return (
     <header className="flex items-center justify-between py-4 px-2 sm:px-4 max-w-6xl mx-auto border-b border-amber-900/30">
       <div className="flex items-center gap-3">
@@ -20,13 +26,28 @@ export const Header: React.FC<HeaderProps> = ({ onOpenHistory }) => {
             </span>
           </h1>
           <p className="text-xs text-slate-400 hidden sm:block">
-            人机深算对弈 · 天梯积分段位 · 传统名局挑战
+            人机深算对弈 · 大模型跨界对战 · 经典名局挑战
           </p>
         </div>
       </div>
 
       <div className="flex items-center gap-2">
         <button
+          type="button"
+          onClick={onOpenLLMConfig}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-medium border transition-all shadow-sm ${
+            isLLMActive
+              ? 'bg-amber-500/20 text-amber-200 border-amber-500/40 hover:bg-amber-500/30'
+              : 'bg-slate-900/80 hover:bg-slate-800 text-slate-200 border-slate-800 hover:border-amber-500/40'
+          }`}
+          title="配置大模型 API 与对弈引擎"
+        >
+          <Sparkles className="w-4 h-4 text-amber-400" />
+          <span>大模型设置</span>
+        </button>
+
+        <button
+          type="button"
           onClick={onOpenHistory}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-200 text-xs sm:text-sm font-medium border border-slate-800 hover:border-amber-500/40 transition-all shadow-sm"
         >

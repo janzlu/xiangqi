@@ -315,10 +315,9 @@ export function isSquareAttackedBy(
     if (isInsideBoard(hr, hc)) {
       const piece = board[hr][hc];
       if (piece && piece.color === attackerColor && piece.type === 'n') {
-        // 马腿位置若为空，则马攻击成立
         const legR = tr + ldr;
         const legC = tc + ldc;
-        if (board[legR][legC] === null) {
+        if (isInsideBoard(legR, legC) && board[legR][legC] === null) {
           return true;
         }
       }
