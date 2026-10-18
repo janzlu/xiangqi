@@ -1,16 +1,22 @@
 import React from 'react';
-import { History, Sparkles } from 'lucide-react';
+import { History, Sparkles, Users } from 'lucide-react';
 
 interface HeaderProps {
   onOpenHistory: () => void;
   onOpenLLMConfig: () => void;
+  onOpenOnlineRoom: () => void;
   isLLMActive?: boolean;
+  isOnlineActive?: boolean;
+  onlineRoomCode?: string;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   onOpenHistory,
   onOpenLLMConfig,
+  onOpenOnlineRoom,
   isLLMActive,
+  isOnlineActive,
+  onlineRoomCode,
 }) => {
   return (
     <header className="flex items-center justify-between py-4 px-2 sm:px-4 max-w-6xl mx-auto border-b border-amber-900/30">
@@ -26,12 +32,27 @@ export const Header: React.FC<HeaderProps> = ({
             </span>
           </h1>
           <p className="text-xs text-slate-400 hidden sm:block">
-            人机深算对弈 · 大模型跨界对战 · 经典名局挑战
+            人机深算对弈 · 大模型跨界对战 · 经典名局挑战 · 双人联机
           </p>
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap justify-end">
+        {/* 双人联机入口 */}
+        <button
+          type="button"
+          onClick={onOpenOnlineRoom}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-medium border transition-all shadow-sm ${
+            isOnlineActive
+              ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/30 animate-pulse'
+              : 'bg-slate-900/80 hover:bg-slate-800 text-slate-200 border-slate-800 hover:border-emerald-500/40'
+          }`}
+          title="创建或加入在线双人对局"
+        >
+          <Users className="w-4 h-4 text-emerald-400" />
+          <span>{isOnlineActive ? `联机中 · ${onlineRoomCode}` : '双人联机'}</span>
+        </button>
+
         <button
           type="button"
           onClick={onOpenLLMConfig}

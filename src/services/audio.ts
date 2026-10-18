@@ -167,6 +167,32 @@ class SoundManager {
       osc.stop(ctx.currentTime + index * 0.14 + 0.4);
     });
   }
+
+  /**
+   * 走棋思考超时/催促提示音效（清脆双音和弦）
+   */
+  public playReminder() {
+    const ctx = this.initCtx();
+    if (!ctx) return;
+
+    const tones = [587.33, 880.0];
+    tones.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, ctx.currentTime + idx * 0.12);
+
+      gain.gain.setValueAtTime(0.35, ctx.currentTime + idx * 0.12);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + idx * 0.12 + 0.4);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(ctx.currentTime + idx * 0.12);
+      osc.stop(ctx.currentTime + idx * 0.12 + 0.45);
+    });
+  }
 }
 
 export const soundManager = new SoundManager();

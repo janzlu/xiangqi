@@ -1,5 +1,5 @@
 import React from 'react';
-import { RotateCcw, Lightbulb, RefreshCw, Volume2, VolumeX, Flag, BookOpen, Compass } from 'lucide-react';
+import { RotateCcw, Lightbulb, RefreshCw, Volume2, VolumeX, Flag, BookOpen, Compass, Handshake } from 'lucide-react';
 
 interface ControlBarProps {
   onUndo: () => void;
@@ -13,6 +13,8 @@ interface ControlBarProps {
   canUndo: boolean;
   isAiThinking: boolean;
   isGameOver: boolean;
+  isOnline?: boolean;
+  onOfferDraw?: () => void;
 }
 
 export const ControlBar: React.FC<ControlBarProps> = ({
@@ -27,44 +29,62 @@ export const ControlBar: React.FC<ControlBarProps> = ({
   canUndo,
   isAiThinking,
   isGameOver,
+  isOnline,
+  onOfferDraw,
 }) => {
   return (
     <div className="bg-slate-900/80 backdrop-blur-md rounded-2xl p-3 border border-amber-900/40 shadow-xl flex flex-wrap items-center justify-between gap-2">
       <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-        <button
-          onClick={onUndo}
-          disabled={!canUndo || isAiThinking || isGameOver}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all
-            bg-slate-800 hover:bg-slate-700 text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed
-            border border-slate-700 hover:border-amber-500/50"
-          title="悔棋两步回到自己回合"
-        >
-          <RotateCcw className="w-4 h-4 text-amber-400" />
-          <span>悔棋</span>
-        </button>
+        {!isOnline ? (
+          <>
+            <button
+              onClick={onUndo}
+              disabled={!canUndo || isAiThinking || isGameOver}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all
+                bg-slate-800 hover:bg-slate-700 text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed
+                border border-slate-700 hover:border-amber-500/50 cursor-pointer"
+              title="悔棋两步回到自己回合"
+            >
+              <RotateCcw className="w-4 h-4 text-amber-400" />
+              <span>悔棋</span>
+            </button>
 
-        <button
-          onClick={onHint}
-          disabled={isAiThinking || isGameOver}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all
-            bg-slate-800 hover:bg-slate-700 text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed
-            border border-slate-700 hover:border-emerald-500/50"
-          title="AI 推演最优走法提示"
-        >
-          <Lightbulb className="w-4 h-4 text-emerald-400" />
-          <span>锦囊</span>
-        </button>
+            <button
+              onClick={onHint}
+              disabled={isAiThinking || isGameOver}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all
+                bg-slate-800 hover:bg-slate-700 text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed
+                border border-slate-700 hover:border-emerald-500/50 cursor-pointer"
+              title="AI 推演最优走法提示"
+            >
+              <Lightbulb className="w-4 h-4 text-emerald-400" />
+              <span>锦囊</span>
+            </button>
 
-        <button
-          onClick={onOpenEndgames}
-          disabled={isAiThinking}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all
-            bg-slate-800 hover:bg-slate-700 text-amber-200 border border-slate-700 hover:border-amber-500/50"
-          title="挑选经典名局残局挑战"
-        >
-          <Compass className="w-4 h-4 text-amber-400" />
-          <span>名局挑战</span>
-        </button>
+            <button
+              onClick={onOpenEndgames}
+              disabled={isAiThinking}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all
+                bg-slate-800 hover:bg-slate-700 text-amber-200 border border-slate-700 hover:border-amber-500/50 cursor-pointer"
+              title="挑选经典名局残局挑战"
+            >
+              <Compass className="w-4 h-4 text-amber-400" />
+              <span>名局挑战</span>
+            </button>
+          </>
+        ) : (
+          <button
+            onClick={onOfferDraw}
+            disabled={isGameOver}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all
+              bg-slate-800 hover:bg-slate-700 text-amber-200 disabled:opacity-40 disabled:cursor-not-allowed
+              border border-slate-700 hover:border-amber-500/50 cursor-pointer"
+            title="向对方提出和棋协商"
+          >
+            <Handshake className="w-4 h-4 text-amber-400" />
+            <span>申请求和</span>
+          </button>
+        )}
       </div>
 
       <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">

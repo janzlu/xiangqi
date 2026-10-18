@@ -35,9 +35,16 @@
 - 收录“七星聚会”、“野马操田”、“千里独行”等古谱经典名局。
 - 独立 FEN 编解码，一键载入残局并随时展开实战破局。
 
-### 5. 沉浸式国风视听体验
+### 5. 双人在线联机对弈与超时催促系统
+- **纯前端 WebRTC P2P 架构**：零中央中转服务器、端到端直连传输，6 位房间码或链接一键复制邀请。
+- **自定义执子与智能翻转**：房主可指定执红、执黑或随机抽签，客方棋盘自适应翻转保证第一人称视角。
+- **正规落子无悔与局内协商**：在线禁用悔棋，支持双方在线“求和”协商与主动“认输”。
+- **5 分钟超时防挂机与响铃提醒**：走棋思考超过 5 分钟自动弹出提示框并伴随清脆双音和弦提醒；支持随时手动一键催促走棋。
+- **局内实时聊天**：内置“棋逢对手，请多指教”、“棋逢妙手，佩服佩服”等经典国风短语与自由文字畅聊。
+
+### 6. 沉浸式国风视听体验
 - **大气居中三栏布局**：740px 高清自适应木纹棋盘居中，左侧天梯计分与设置，右侧操作栏与实时棋谱。
-- **纯 Web Audio 声音引擎**：零外部音频资源依赖，程序化合成木质落子、沉闷吃子、短促将军及宏大胜负和弦。
+- **纯 Web Audio 声音引擎**：零外部音频资源依赖，程序化合成木质落子、沉闷吃子、短促将军、催促响铃及宏大胜负和弦。
 - **全局错误边界保护**：内置 React ErrorBoundary，杜绝白屏/黑屏，提供即时自愈恢复。
 
 ---
@@ -45,10 +52,11 @@
 ## 🛠️ 技术栈
 
 - **框架核心**：React 19 + TypeScript + Vite
+- **联机对战**：PeerJS (WebRTC P2P 端到端直连)
 - **样式与动效**：Tailwind CSS v4 + Canvas Confetti
 - **图标库**：Lucide React
 - **代码质检**：Oxlint (0 错误 0 警告)
-- **单元测试**：Vitest (45 项测试全量覆盖)
+- **单元测试**：Vitest (10 个测试套件，49 项测试全量覆盖)
 
 ---
 
@@ -73,6 +81,58 @@ npm test
 ### 4. 生产构建打包
 ```bash
 npm run build
+```
+构建产物输出至 `dist/` 目录。
+
+---
+
+## 🌐 VPS 生产环境部署（无 Docker，零冲突）
+
+本项目构建后为纯静态单页应用（SPA），无需任何后端服务或 Docker 容器，不干扰 VPS 现有运行中的其他业务项目。
+
+### 方案 A：使用 Nginx 独立端口托管（推荐）
+
+1. 将 `dist/` 目录上传至 VPS，如 `/var/www/xiangqi`：
+```bash
+rsync -avz --delete ./dist/ user@your-vps-ip:/var/www/xiangqi/
+```
+
+2. 在 Nginx 配置目录（如 `/etc/nginx/conf.d/xiangqi.conf`）添加独立配置（选择一个未被占用的端口，例如 `8088`）：
+```nginx
+server {
+    listen 8088;
+    server_name _;
+
+    root /var/www/xiangqi;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # 启用 Gzip 压缩以加快棋盘静态资源加载
+    gzip on;
+    gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
+}
+```
+
+3. 测试并重载 Nginx（不重启服务，既有业务完全无感）：
+```bash
+sudo nginx -t && sudo nginx -s reload
+```
+
+### 方案 B：使用 Node / PM2 独立进程托管
+
+无需修改 Nginx，利用轻量静态服务器 `serve` 运行在独立端口：
+```bash
+# 在 VPS 上全局安装 serve（如果尚未安装）
+npm install -g serve pm2
+
+# 启动并托管在指定端口（例如 8088）
+pm2 start "serve -s /var/www/xiangqi -l 8088" --name "xiangqi-game"
+
+# 保存 PM2 进程状态以支持开机自启
+pm2 save
 ```
 
 ---
