@@ -79,10 +79,56 @@ export function formatRoomId(roomCode: string): string {
   return `${ROOM_ID_PREFIX}${roomCode.trim().toUpperCase()}`;
 }
 
+/**
+ * 解析自建 PeerJS 信令中继配置
+ * 统一走 VPS 上的独立信令服务（xq.firelu.com/peerjs），摆脱公网 Cloudflare 阻断
+ */
+export function getPeerServerConfig() {
+  const isBrowser = typeof window !== 'undefined';
+  const hostname = isBrowser ? window.location.hostname : 'xq.firelu.com';
+  const isLocal = hostname === 'localhost' || hostname === '127.0.0.1';
+
+  const host = isLocal ? 'xq.firelu.com' : hostname;
+  const port = isLocal
+    ? 443
+    : window.location.port
+    ? Number(window.location.port)
+    : window.location.protocol === 'https:'
+    ? 443
+    : 80;
+  const secure = isLocal ? true : window.location.protocol === 'https:';
+
+  return {
+    host,
+    port,
+    path: '/peerjs',
+    secure,
+    debug: 1,
+    config: {
+      iceServers: DEFAULT_ICE_SERVERS,
+    },
+  };
+}
+
 export class PeerConnectionManager {
   private peer: Peer | null = null;
   private conn: DataConnection | null = null;
   private heartbeatInterval: number | null = null;
+  private connectTimer: number | null = null;
+
+  private startConnectTimeout(onTimeout: () => void, ms = 10000) {
+    this.clearConnectTimeout();
+    if (typeof window !== 'undefined') {
+      this.connectTimer = window.setTimeout(onTimeout, ms);
+    }
+  }
+
+  private clearConnectTimeout() {
+    if (this.connectTimer !== null && typeof window !== 'undefined') {
+      clearTimeout(this.connectTimer);
+      this.connectTimer = null;
+    }
+  }
 
   public initHost(
     roomCode: string,
@@ -103,15 +149,21 @@ export class PeerConnectionManager {
     }
 
     const peerId = formatRoomId(roomCode);
-    const peer = new Peer(peerId, {
-      debug: 1,
-      config: {
-        iceServers: DEFAULT_ICE_SERVERS,
-      },
-    });
+    const peerConfig = getPeerServerConfig();
+    const peer = new Peer(peerId, peerConfig);
     this.peer = peer;
 
+    let isConnected = false;
+    this.startConnectTimeout(() => {
+      if (!isConnected) {
+        callbacks.onError(new Error('连接自建信令服务器超时，请刷新重试或检查网络状态。'));
+        this.cleanup();
+      }
+    });
+
     peer.on('open', (id) => {
+      isConnected = true;
+      this.clearConnectTimeout();
       callbacks.onReady(id);
     });
 
@@ -123,6 +175,7 @@ export class PeerConnectionManager {
     });
 
     peer.on('error', (err) => {
+      this.clearConnectTimeout();
       callbacks.onError(formatPeerError(err));
     });
 
@@ -149,15 +202,21 @@ export class PeerConnectionManager {
     }
 
     // 客方生成一个随机 Peer ID，然后主动连入房主 Peer ID
-    const peer = new Peer({
-      debug: 1,
-      config: {
-        iceServers: DEFAULT_ICE_SERVERS,
-      },
-    });
+    const peerConfig = getPeerServerConfig();
+    const peer = new Peer(peerConfig);
     this.peer = peer;
 
+    let isConnected = false;
+    this.startConnectTimeout(() => {
+      if (!isConnected) {
+        callbacks.onError(new Error('连接自建信令服务器超时，请刷新重试或检查网络状态。'));
+        this.cleanup();
+      }
+    });
+
     peer.on('open', () => {
+      isConnected = true;
+      this.clearConnectTimeout();
       const targetHostId = formatRoomId(roomCode);
       const connection = peer.connect(targetHostId, {
         reliable: true,
@@ -176,6 +235,7 @@ export class PeerConnectionManager {
     });
 
     peer.on('error', (err) => {
+      this.clearConnectTimeout();
       callbacks.onError(formatPeerError(err));
     });
 
@@ -238,6 +298,7 @@ export class PeerConnectionManager {
   }
 
   public cleanup() {
+    this.clearConnectTimeout();
     this.stopHeartbeat();
     if (this.conn) {
       try {

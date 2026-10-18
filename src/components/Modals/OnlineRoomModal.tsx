@@ -146,9 +146,18 @@ export const OnlineRoomModal: React.FC<OnlineRoomModalProps> = ({
 
         {/* 正在连接动画 */}
         {isConnecting && (
-          <div className="py-8 space-y-3 text-center">
+          <div className="py-8 space-y-4 text-center">
             <RefreshCw className="w-8 h-8 mx-auto text-amber-400 animate-spin" />
-            <p className="text-sm text-slate-300 font-medium">正在建立 P2P 加密通信隧道...</p>
+            <div className="space-y-1">
+              <p className="text-sm text-slate-300 font-medium">正在建立 P2P 加密通信隧道...</p>
+              <p className="text-xs text-slate-500">连接中继信令节点中，约 1~3 秒</p>
+            </div>
+            <button
+              onClick={onCancel}
+              className="mt-2 px-4 py-1.5 rounded-lg text-xs text-slate-400 hover:text-slate-200 bg-slate-800/60 hover:bg-slate-800 border border-slate-700 transition-colors cursor-pointer"
+            >
+              取消
+            </button>
           </div>
         )}
 
