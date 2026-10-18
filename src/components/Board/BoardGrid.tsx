@@ -183,7 +183,7 @@ export const BoardGrid: React.FC<BoardGridProps> = React.memo(({ flipped }) => {
       {/* 楚河汉界文字 */}
       <text
         x={PADDING + 2 * CELL_SIZE}
-        y={PADDING + 4.68 * CELL_SIZE}
+        y={PADDING + 4.5 * CELL_SIZE}
         textAnchor="middle"
         dominantBaseline="central"
         fill="#66462c"
@@ -196,7 +196,7 @@ export const BoardGrid: React.FC<BoardGridProps> = React.memo(({ flipped }) => {
       </text>
       <text
         x={PADDING + 6 * CELL_SIZE}
-        y={PADDING + 4.68 * CELL_SIZE}
+        y={PADDING + 4.5 * CELL_SIZE}
         textAnchor="middle"
         dominantBaseline="central"
         fill="#66462c"
