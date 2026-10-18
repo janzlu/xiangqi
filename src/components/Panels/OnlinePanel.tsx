@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Users, Copy, Check, Bell, MessageSquare, LogOut } from 'lucide-react';
+import { Send, Users, Copy, Check, Bell, MessageSquare, LogOut, Handshake, Flag } from 'lucide-react';
 import { ChatMessage, PRESET_CHAT_PHRASES } from '../../types/online';
 import { PieceColor } from '../../types/chess';
 
@@ -12,6 +12,9 @@ interface OnlinePanelProps {
   onSendMessage: (text: string, isPreset?: boolean) => void;
   onUrgeMove: () => void;
   onLeaveRoom: () => void;
+  onOfferDraw?: () => void;
+  onResign?: () => void;
+  isGameOver?: boolean;
 }
 
 export const OnlinePanel: React.FC<OnlinePanelProps> = ({
@@ -23,6 +26,9 @@ export const OnlinePanel: React.FC<OnlinePanelProps> = ({
   onSendMessage,
   onUrgeMove,
   onLeaveRoom,
+  onOfferDraw,
+  onResign,
+  isGameOver,
 }) => {
   const [inputText, setInputText] = useState('');
   const [copied, setCopied] = useState(false);
@@ -71,32 +77,54 @@ export const OnlinePanel: React.FC<OnlinePanelProps> = ({
   const timeFormatted = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
 
   return (
-    <div className="bg-slate-900/90 backdrop-blur-md rounded-3xl p-4 sm:p-5 border border-amber-900/40 shadow-xl space-y-4 flex flex-col h-[520px]">
-      {/* 顶部房间状态条 */}
-      <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+    <div className="bg-slate-900/90 backdrop-blur-md rounded-2xl sm:rounded-3xl p-3 sm:p-5 border border-amber-900/40 shadow-xl space-y-3 sm:space-y-4 flex flex-col h-auto min-h-[380px] sm:h-[520px]">
+      {/* 顶部房间状态与快捷操作条 */}
+      <div className="flex items-center justify-between pb-2.5 sm:pb-3 border-b border-slate-800">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-            <Users className="w-4 h-4" />
+          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+            <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </div>
           <div>
-            <div className="text-xs text-slate-400">在线对战 · 房间</div>
-            <div className="text-sm font-mono font-bold text-amber-300 tracking-wider">
+            <div className="text-[10px] sm:text-xs text-slate-400">在线对战 · 房间</div>
+            <div className="text-xs sm:text-sm font-mono font-bold text-amber-300 tracking-wider">
               {roomCode}
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1 sm:gap-1.5">
+          {onOfferDraw && (
+            <button
+              onClick={onOfferDraw}
+              disabled={isGameOver}
+              className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 text-xs flex items-center gap-1 border border-slate-700 hover:border-amber-500/40 transition-colors disabled:opacity-40 cursor-pointer"
+              title="向对方提出和棋协商"
+            >
+              <Handshake className="w-3.5 h-3.5 text-amber-400" />
+              <span>求和</span>
+            </button>
+          )}
+          {onResign && (
+            <button
+              onClick={onResign}
+              disabled={isGameOver}
+              className="px-2 py-1 rounded-lg bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 text-xs flex items-center gap-1 border border-rose-800/50 transition-colors disabled:opacity-40 cursor-pointer"
+              title="认输认负"
+            >
+              <Flag className="w-3.5 h-3.5 text-rose-400" />
+              <span>认输</span>
+            </button>
+          )}
           <button
             onClick={handleCopyLink}
-            className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs flex items-center gap-1 border border-slate-700 transition-colors"
+            className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs flex items-center gap-1 border border-slate-700 transition-colors cursor-pointer"
             title="复制对战链接"
           >
             {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
           </button>
           <button
             onClick={onLeaveRoom}
-            className="p-1.5 rounded-lg bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 text-xs flex items-center gap-1 border border-rose-800/50 transition-colors"
+            className="p-1.5 rounded-lg bg-slate-800/60 hover:bg-rose-950/60 text-slate-400 hover:text-rose-300 text-xs flex items-center gap-1 border border-slate-700/80 transition-colors cursor-pointer"
             title="离开房间"
           >
             <LogOut className="w-3.5 h-3.5" />

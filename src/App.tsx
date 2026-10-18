@@ -138,7 +138,7 @@ export function App() {
       />
 
       {/* 主对弈区：主棋盘放大居中，其他面板分列两侧 */}
-      <main className="flex-1 max-w-[1600px] w-full mx-auto p-3 sm:p-5 md:p-6 grid grid-cols-1 lg:grid-cols-12 xl:grid-cols-[340px_1fr_340px] gap-6 items-center justify-center">
+      <main className="flex-1 max-w-[1600px] w-full mx-auto p-2 sm:p-5 md:p-6 grid grid-cols-1 lg:grid-cols-12 xl:grid-cols-[340px_1fr_340px] gap-3 sm:gap-6 items-center justify-center">
         {/* 左侧区域：单机展示天梯分/难度选择；联机展示在线对局控制与聊天 */}
         <section className="lg:col-span-6 xl:col-span-1 space-y-4 w-full order-2 xl:order-1">
           {!isOnlineMode ? (
@@ -171,6 +171,9 @@ export function App() {
               onSendMessage={online.sendChatMessage}
               onUrgeMove={online.urgeMove}
               onLeaveRoom={online.leaveRoom}
+              onOfferDraw={online.offerDraw}
+              onResign={online.resign}
+              isGameOver={isGameOver}
             />
           )}
         </section>

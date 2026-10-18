@@ -42,11 +42,11 @@ export const Board: React.FC<BoardProps> = ({
   const isRedInCheck = isInCheck(board, 'red');
   const isBlackInCheck = isInCheck(board, 'black');
 
-  // 棋子直径（自适应放大）
-  const pieceDiameter = 62;
+  // 棋子直径（黄金比例 80.5%，棋子间距优雅疏朗）
+  const pieceDiameter = 58;
 
   return (
-    <div className="relative w-full max-w-[740px] p-3 sm:p-5 rounded-3xl shadow-2xl bg-gradient-to-b from-amber-950/30 to-amber-950/10 backdrop-blur-md border border-amber-800/40 flex justify-center">
+    <div className="relative w-full max-w-[740px] p-1.5 sm:p-5 rounded-2xl sm:rounded-3xl shadow-2xl bg-gradient-to-b from-amber-950/30 to-amber-950/10 backdrop-blur-md border border-amber-800/40 flex justify-center">
       {/* 棋盘木纹板底 */}
       <div
         className="relative w-full rounded-2xl overflow-hidden shadow-2xl"
