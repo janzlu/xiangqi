@@ -51,6 +51,11 @@ export function useOnlineChess(options?: UseOnlineChessOptions) {
   const [isInactivityAlertOpen, setIsInactivityAlertOpen] = useState(false);
   const [inactivityAlertMessage, setInactivityAlertMessage] = useState('');
   const hasAlertedThisTurnRef = useRef(false);
+  const hostHandshakeDataRef = useRef<{
+    colorChoice: OnlineColorChoice;
+    hostColor: PieceColor;
+    guestColor: PieceColor;
+  } | null>(null);
 
   const peerMgrRef = useRef<PeerConnectionManager>(new PeerConnectionManager());
 
@@ -240,6 +245,22 @@ export function useOnlineChess(options?: UseOnlineChessOptions) {
         break;
       }
 
+      case 'GUEST_READY': {
+        // 房主收到客方的就绪信号，若握手数据存在，确保发送 HANDSHAKE_INIT
+        if (hostHandshakeDataRef.current) {
+          peerMgrRef.current.sendMessage({
+            type: 'HANDSHAKE_INIT',
+            payload: {
+              hostColorChoice: hostHandshakeDataRef.current.colorChoice,
+              assignedHostColor: hostHandshakeDataRef.current.hostColor,
+              assignedGuestColor: hostHandshakeDataRef.current.guestColor,
+              hostName: '房主',
+            },
+          });
+        }
+        break;
+      }
+
       case 'MOVE': {
         applyMoveOnline(msg.payload.move, false);
         break;
@@ -323,6 +344,12 @@ export function useOnlineChess(options?: UseOnlineChessOptions) {
     const guestColor: PieceColor = hostColor === 'red' ? 'black' : 'red';
     setMyColor(hostColor);
 
+    hostHandshakeDataRef.current = {
+      colorChoice,
+      hostColor,
+      guestColor,
+    };
+
     peerMgrRef.current.initHost(code, {
       onReady: () => {
         setConnectionState('waiting_peer');
@@ -369,7 +396,11 @@ export function useOnlineChess(options?: UseOnlineChessOptions) {
 
     peerMgrRef.current.initGuest(formatted, {
       onConnected: () => {
-        // 等待接收房主的 HANDSHAKE_INIT
+        // 客方通道就绪后，主动发送 GUEST_READY 触发房主握手
+        peerMgrRef.current.sendMessage({
+          type: 'GUEST_READY',
+          payload: { guestName: '好友棋手' },
+        });
       },
       onMessage: handleP2PMessage,
       onDisconnected: () => {

@@ -5,11 +5,12 @@ const ROOM_ID_PREFIX = 'xq-room-v1-';
 
 // 高可用 STUN 服务器列表（融合全球与国内高速节点）
 export const DEFAULT_ICE_SERVERS: RTCIceServer[] = [
-  { urls: 'stun:stun.l.google.com:19302' },
-  { urls: 'stun:stun1.l.google.com:19302' },
-  { urls: 'stun:stun.cloudflare.com:3478' },
+  { urls: 'stun:stun.qq.com:3478' },
   { urls: 'stun:stun.miwifi.com:3478' },
   { urls: 'stun:stun.chat.bilibili.com:3478' },
+  { urls: 'stun:stun.cloudflare.com:3478' },
+  { urls: 'stun:stun.l.google.com:19302' },
+  { urls: 'stun:stun1.l.google.com:19302' },
 ];
 
 /**
@@ -115,6 +116,7 @@ export class PeerConnectionManager {
   private conn: DataConnection | null = null;
   private heartbeatInterval: number | null = null;
   private connectTimer: number | null = null;
+  private pendingQueue: P2PMessage[] = [];
 
   private startConnectTimeout(onTimeout: () => void, ms = 10000) {
     this.clearConnectTimeout();
@@ -170,8 +172,18 @@ export class PeerConnectionManager {
     peer.on('connection', (connection) => {
       this.conn = connection;
       this.bindConnectionEvents(connection, callbacks.onMessage, callbacks.onDisconnected);
-      callbacks.onGuestConnected(connection);
-      this.startHeartbeat();
+
+      const onChannelOpen = () => {
+        callbacks.onGuestConnected(connection);
+        this.startHeartbeat();
+        this.flushPendingMessages();
+      };
+
+      if (connection.open) {
+        onChannelOpen();
+      } else {
+        connection.on('open', onChannelOpen);
+      }
     });
 
     peer.on('error', (err) => {
@@ -222,12 +234,19 @@ export class PeerConnectionManager {
         reliable: true,
       });
       this.conn = connection;
+      this.bindConnectionEvents(connection, callbacks.onMessage, callbacks.onDisconnected);
 
-      connection.on('open', () => {
+      const onChannelOpen = () => {
         callbacks.onConnected();
-        this.bindConnectionEvents(connection, callbacks.onMessage, callbacks.onDisconnected);
         this.startHeartbeat();
-      });
+        this.flushPendingMessages();
+      };
+
+      if (connection.open) {
+        onChannelOpen();
+      } else {
+        connection.on('open', onChannelOpen);
+      }
 
       connection.on('error', (err) => {
         callbacks.onError(formatPeerError(err));
@@ -275,10 +294,34 @@ export class PeerConnectionManager {
 
   public sendMessage(msg: P2PMessage): boolean {
     if (this.conn && this.conn.open) {
-      this.conn.send(msg);
+      try {
+        this.conn.send(msg);
+        return true;
+      } catch (err) {
+        console.warn('Failed to send P2P message', err);
+        return false;
+      }
+    }
+    // 通道尚未完全打开时放入暂存队列，待 open 事件后立即自动补发
+    if (this.conn && !this.conn.open) {
+      this.pendingQueue.push(msg);
       return true;
     }
     return false;
+  }
+
+  private flushPendingMessages() {
+    if (this.conn && this.conn.open && this.pendingQueue.length > 0) {
+      const queue = [...this.pendingQueue];
+      this.pendingQueue = [];
+      for (const m of queue) {
+        try {
+          this.conn.send(m);
+        } catch (e) {
+          console.warn('Failed to flush queued P2P message', e);
+        }
+      }
+    }
   }
 
   private startHeartbeat() {
@@ -300,6 +343,7 @@ export class PeerConnectionManager {
   public cleanup() {
     this.clearConnectTimeout();
     this.stopHeartbeat();
+    this.pendingQueue = [];
     if (this.conn) {
       try {
         this.conn.close();

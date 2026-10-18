@@ -38,6 +38,12 @@ export type P2PMessage =
       };
     }
   | {
+      type: 'GUEST_READY';
+      payload?: {
+        guestName?: string;
+      };
+    }
+  | {
       type: 'MOVE';
       payload: {
         move: Move;
