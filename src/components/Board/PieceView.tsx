@@ -51,9 +51,9 @@ export const PieceView: React.FC<PieceViewProps> = React.memo(({
           boxShadow: 'inset 0 1px 3px rgba(0, 0, 0, 0.2)',
         }}
       >
-        {/* 楷体篆刻字符：PC端完全保持原版（font-black, sm:text-3xl md:text-4xl），移动端优化为 18px font-bold，解决不同浏览器回退字体内置膨胀与基线偏移问题 */}
+        {/* 楷体篆刻字符：移动端 18px 加粗（font-black），PC端保持原版（sm:text-3xl md:text-4xl font-black） */}
         <span
-          className={`font-serif font-bold sm:font-black text-[18px] leading-none sm:text-3xl md:text-4xl tracking-tighter select-none flex items-center justify-center -translate-y-[0.5px] sm:translate-y-0 ${
+          className={`font-serif font-black text-[18px] leading-none sm:text-3xl md:text-4xl tracking-tighter select-none flex items-center justify-center -translate-y-[0.5px] sm:translate-y-0 ${
             isRed ? 'text-red-700' : 'text-slate-900'
           }`}
           style={{
