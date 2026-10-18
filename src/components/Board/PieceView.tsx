@@ -51,14 +51,13 @@ export const PieceView: React.FC<PieceViewProps> = React.memo(({
           boxShadow: 'inset 0 1px 3px rgba(0, 0, 0, 0.2)',
         }}
       >
-        {/* 楷体篆刻字符：PC端完全保持原版视觉（sm:text-3xl md:text-4xl，0描边），移动端适度放大至 20.5px 并强化笔锋加粗 */}
+        {/* 楷体篆刻字符：PC端完全保持原版（font-black, sm:text-3xl md:text-4xl），移动端优化为 18px font-bold，解决不同浏览器回退字体内置膨胀与基线偏移问题 */}
         <span
-          className={`font-serif font-black text-[20.5px] leading-none sm:text-3xl md:text-4xl tracking-tighter [--piece-stroke:0.35px] sm:[--piece-stroke:0px] ${
+          className={`font-serif font-bold sm:font-black text-[18px] leading-none sm:text-3xl md:text-4xl tracking-tighter select-none flex items-center justify-center -translate-y-[0.5px] sm:translate-y-0 ${
             isRed ? 'text-red-700' : 'text-slate-900'
           }`}
           style={{
             fontFamily: '"Kaiti SC", "STKaiti", "KaiTi", "SimKai", "Noto Serif SC", serif',
-            WebkitTextStroke: isRed ? 'var(--piece-stroke) #991b1b' : 'var(--piece-stroke) #0f172a',
             textShadow: isRed
               ? '0 1px 1px rgba(255, 255, 255, 0.8), 0 -1px 1px rgba(136, 19, 19, 0.4)'
               : '0 1px 1px rgba(255, 255, 255, 0.7), 0 -1px 1px rgba(0, 0, 0, 0.4)',
