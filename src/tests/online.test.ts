@@ -54,4 +54,16 @@ describe('Online Multiplayer P2P Protocol & Helpers', () => {
     expect(PRESET_CHAT_PHRASES).toContain('妙招！这步棋颇有深意。');
     expect(PRESET_CHAT_PHRASES).toContain('承让承让，棋逢对手！');
   });
+
+  it('translates PeerJS errors to friendly Chinese messages', async () => {
+    const { formatPeerError } = await import('../services/peerService');
+    const webrtcErr = formatPeerError(new Error('The current browser does not support WebRTC'));
+    expect(webrtcErr.message).toContain('WebRTC 连接被浏览器扩展拦截');
+
+    const networkErr = formatPeerError(new Error('Lost connection to server'));
+    expect(networkErr.message).toContain('无法连接至 P2P 信令服务器');
+
+    const takenErr = formatPeerError(new Error('ID "xq-room-v1-TEST" is taken'));
+    expect(takenErr.message).toContain('已被占用');
+  });
 });

@@ -3,6 +3,66 @@ import { P2PMessage } from '../types/online';
 
 const ROOM_ID_PREFIX = 'xq-room-v1-';
 
+// 高可用 STUN 服务器列表（融合全球与国内高速节点）
+export const DEFAULT_ICE_SERVERS: RTCIceServer[] = [
+  { urls: 'stun:stun.l.google.com:19302' },
+  { urls: 'stun:stun1.l.google.com:19302' },
+  { urls: 'stun:stun.cloudflare.com:3478' },
+  { urls: 'stun:stun.miwifi.com:3478' },
+  { urls: 'stun:stun.chat.bilibili.com:3478' },
+];
+
+/**
+ * 前置校验浏览器 WebRTC API 支持度
+ */
+export function checkWebRTCSupport(): { supported: boolean; error?: string } {
+  if (typeof window === 'undefined') {
+    return { supported: false, error: '非浏览器环境' };
+  }
+
+  const hasRTC =
+    typeof window.RTCPeerConnection !== 'undefined' ||
+    typeof (window as any).webkitRTCPeerConnection !== 'undefined' ||
+    typeof (window as any).mozRTCPeerConnection !== 'undefined';
+
+  if (!hasRTC) {
+    return {
+      supported: false,
+      error:
+        '当前浏览器 WebRTC 被扩展插件（如 VPN、代理插件、WebRTC 防泄漏扩展）拦截。请在扩展中允许 WebRTC，或在 Chrome 无痕模式中打开本站重试。',
+    };
+  }
+
+  return { supported: true };
+}
+
+/**
+ * 将 PeerJS 底层英文错误转译为友好详尽的中文提示
+ */
+export function formatPeerError(err: unknown): Error {
+  const msg = err instanceof Error ? err.message : String(err);
+
+  if (
+    msg.includes('The current browser does not support WebRTC') ||
+    msg.includes('browser does not support')
+  ) {
+    return new Error(
+      'WebRTC 连接被浏览器扩展拦截（常见于 VPN、代理插件、WebRTC 防泄漏扩展）。请在扩展中关闭 WebRTC 拦截，或使用无痕模式打开本站。'
+    );
+  }
+  if (
+    msg.includes('Could not connect to peerjs server') ||
+    msg.includes('Lost connection to server')
+  ) {
+    return new Error('无法连接至 P2P 信令服务器，请检查本地网络或代理设置。');
+  }
+  if (msg.includes('is taken')) {
+    return new Error('该房间码已被占用，请点击“立即创建房间”生成新房间。');
+  }
+
+  return err instanceof Error ? err : new Error(msg);
+}
+
 /**
  * 生成 6 位大写字母/数字房间码（如 XQ792B）
  */
@@ -36,9 +96,18 @@ export class PeerConnectionManager {
   ) {
     this.cleanup();
 
+    const check = checkWebRTCSupport();
+    if (!check.supported) {
+      callbacks.onError(new Error(check.error));
+      return;
+    }
+
     const peerId = formatRoomId(roomCode);
     const peer = new Peer(peerId, {
       debug: 1,
+      config: {
+        iceServers: DEFAULT_ICE_SERVERS,
+      },
     });
     this.peer = peer;
 
@@ -54,7 +123,7 @@ export class PeerConnectionManager {
     });
 
     peer.on('error', (err) => {
-      callbacks.onError(err);
+      callbacks.onError(formatPeerError(err));
     });
 
     peer.on('disconnected', () => {
@@ -73,9 +142,18 @@ export class PeerConnectionManager {
   ) {
     this.cleanup();
 
+    const check = checkWebRTCSupport();
+    if (!check.supported) {
+      callbacks.onError(new Error(check.error));
+      return;
+    }
+
     // 客方生成一个随机 Peer ID，然后主动连入房主 Peer ID
     const peer = new Peer({
       debug: 1,
+      config: {
+        iceServers: DEFAULT_ICE_SERVERS,
+      },
     });
     this.peer = peer;
 
@@ -93,12 +171,12 @@ export class PeerConnectionManager {
       });
 
       connection.on('error', (err) => {
-        callbacks.onError(err);
+        callbacks.onError(formatPeerError(err));
       });
     });
 
     peer.on('error', (err) => {
-      callbacks.onError(err);
+      callbacks.onError(formatPeerError(err));
     });
 
     peer.on('disconnected', () => {
