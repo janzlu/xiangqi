@@ -51,7 +51,6 @@ export const Header: React.FC<HeaderProps> = ({
         >
           <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400 shrink-0" />
           <span className="hidden sm:inline">{isOnlineActive ? `联机中 · ${onlineRoomCode}` : '双人联机'}</span>
-          <span className="sm:inline hidden sm:hidden">{isOnlineActive ? `联机·${onlineRoomCode}` : '联机'}</span>
           <span className="sm:hidden">{isOnlineActive ? (onlineRoomCode || '联机') : '联机'}</span>
         </button>
 

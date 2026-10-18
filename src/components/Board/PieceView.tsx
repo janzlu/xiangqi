@@ -40,9 +40,9 @@ export const PieceView: React.FC<PieceViewProps> = React.memo(({
           : '0 4px 10px rgba(0, 0, 0, 0.35), inset 0 2px 3px rgba(255, 255, 255, 0.8), inset 0 -2px 5px rgba(0, 0, 0, 0.3)',
       }}
     >
-      {/* 棋子内圈倒角刻槽线 */}
+      {/* 棋子内圈倒角线 */}
       <div
-        className="w-[84%] h-[84%] rounded-full flex items-center justify-center relative overflow-hidden"
+        className="w-[84%] h-[84%] rounded-full flex items-center justify-center"
         style={{
           border: isRed ? '1.5px solid rgba(185, 28, 28, 0.45)' : '1.5px solid rgba(30, 41, 59, 0.45)',
           background: isRed
@@ -51,29 +51,21 @@ export const PieceView: React.FC<PieceViewProps> = React.memo(({
           boxShadow: 'inset 0 1px 3px rgba(0, 0, 0, 0.2)',
         }}
       >
-        {/* 楷体精工篆刻字符：采用 SVG 自适应视口，字体比例精确设定为棋盘木子经典的视觉黄金比例（约占内圈 54%），舒展沉稳、不拥挤不越界 */}
-        <svg
-          viewBox="0 0 100 100"
-          className="w-full h-full pointer-events-none select-none overflow-visible"
+        {/* 楷体篆刻字符：PC端完全保持原版视觉（sm:text-3xl md:text-4xl，0描边），移动端适度放大至 20.5px 并强化笔锋加粗 */}
+        <span
+          className={`font-serif font-black text-[20.5px] leading-none sm:text-3xl md:text-4xl tracking-tighter [--piece-stroke:0.35px] sm:[--piece-stroke:0px] ${
+            isRed ? 'text-red-700' : 'text-slate-900'
+          }`}
+          style={{
+            fontFamily: '"Kaiti SC", "STKaiti", "KaiTi", "SimKai", "Noto Serif SC", serif',
+            WebkitTextStroke: isRed ? 'var(--piece-stroke) #991b1b' : 'var(--piece-stroke) #0f172a',
+            textShadow: isRed
+              ? '0 1px 1px rgba(255, 255, 255, 0.8), 0 -1px 1px rgba(136, 19, 19, 0.4)'
+              : '0 1px 1px rgba(255, 255, 255, 0.7), 0 -1px 1px rgba(0, 0, 0, 0.4)',
+          }}
         >
-          <text
-            x="50"
-            y="52"
-            textAnchor="middle"
-            dominantBaseline="central"
-            fontSize="54"
-            fontWeight="bold"
-            fontFamily='"Kaiti SC", "STKaiti", "KaiTi", "SimKai", "Noto Serif SC", serif'
-            fill={isRed ? '#b91c1c' : '#0f172a'}
-            style={{
-              filter: isRed
-                ? 'drop-shadow(0 1px 0.5px rgba(255, 255, 255, 0.8)) drop-shadow(0 -0.5px 0.5px rgba(136, 19, 19, 0.4))'
-                : 'drop-shadow(0 1px 0.5px rgba(255, 255, 255, 0.7)) drop-shadow(0 -0.5px 0.5px rgba(0, 0, 0, 0.4))',
-            }}
-          >
-            {name}
-          </text>
-        </svg>
+          {name}
+        </span>
       </div>
     </div>
   );
