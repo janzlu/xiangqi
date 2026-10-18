@@ -36,15 +36,22 @@
 - 独立 FEN 编解码，一键载入残局并随时展开实战破局。
 
 ### 5. 双人在线联机对弈与超时催促系统
-- **纯前端 WebRTC P2P 架构**：零中央中转服务器、端到端直连传输，6 位房间码或链接一键复制邀请。
-- **自定义执子与智能翻转**：房主可指定执红、执黑或随机抽签，客方棋盘自适应翻转保证第一人称视角。
-- **正规落子无悔与局内协商**：在线禁用悔棋，支持双方在线“求和”协商与主动“认输”。
-- **5 分钟超时防挂机与响铃提醒**：走棋思考超过 5 分钟自动弹出提示框并伴随清脆双音和弦提醒；支持随时手动一键催促走棋。
-- **局内实时聊天**：内置“棋逢对手，请多指教”、“棋逢妙手，佩服佩服”等经典国风短语与自由文字畅聊。
+- **WebRTC P2P 高性能直连**：端到端直连传输，数据零中转延迟，6 位房间码或一键链接秒级入局。
+- **高可用信令中继与国内 STUN 穿透**：
+  - 支持自建独立 WebSocket 信令中继服务，摆脱公共云信令服务不稳定与连接受阻难题。
+  - 内置腾讯、小米、Bilibili 国内高可用 STUN 穿透服务器列表，大幅提升复杂 NAT/移动网络下的 P2P 穿透成功率。
+  - 双向可靠握手与离线消息队列（Message Queue）机制，保障连接建立初期棋步与状态零丢失。
+- **自定义执子与智能翻转**：房主可指定执红、执黑或随机抽签，黑方视角自动翻转保证真实第一人称视角。
+- **正规落子无悔与局内协商**：在线模式严格禁用单方悔棋，支持双方在线“求和”协商与主动“认输”。
+- **5 分钟超时防挂机与响铃催促**：一方思考超过 5 分钟自动弹出提示并伴随清脆双音和弦程序化音效；支持随时手动一键催促走棋。
+- **局内实时互动**：内置国风礼仪快捷语（“棋逢对手，请多指教”等）与自由文字畅聊。
 
-### 6. 沉浸式国风视听体验
-- **大气居中三栏布局**：740px 高清自适应木纹棋盘居中，左侧天梯计分与设置，右侧操作栏与实时棋谱。
-- **纯 Web Audio 声音引擎**：零外部音频资源依赖，程序化合成木质落子、沉闷吃子、短促将军、催促响铃及宏大胜负和弦。
+### 6. 全端极致交互与国风视听体验
+- **移动端与 PC 端双轨最佳视觉**：
+  - **移动端精雕刻字**：针对移动端屏幕尺寸，棋子刻字统一调优为 `18px` 特粗（`font-black`，900 权重）配合 `-0.5px` 光学垂直居中校准，完美解决安卓 Firefox 与 Chrome 在缺乏原生楷体时出现的字框偏宽与基线偏移问题。
+  - **PC 端经典大棋盘**：保持 `62px` 棋子直径与大字号（`sm:text-3xl md:text-4xl font-black`）木纹质感，两端体验独立互不影响。
+  - **超紧凑单行导航与全宽自适应**：移动端顶栏精炼为单行紧凑排列，在线对弈控制（求和/认输/重开）自适应融入控制抽屉，棋盘自动充满视口宽度并杜绝横向滚动。
+- **纯 Web Audio 声音引擎**：零外部音频资源依赖，程序化数学波形实时合成木质落子、沉闷吃子、短促将军、催促响铃及宏大胜负和弦。
 - **全局错误边界保护**：内置 React ErrorBoundary，杜绝白屏/黑屏，提供即时自愈恢复。
 
 ---
@@ -52,11 +59,11 @@
 ## 🛠️ 技术栈
 
 - **框架核心**：React 19 + TypeScript + Vite
-- **联机对战**：PeerJS (WebRTC P2P 端到端直连)
+- **联机对战**：PeerJS (WebRTC P2P + 自建/云端 WebSocket 信令中继)
 - **样式与动效**：Tailwind CSS v4 + Canvas Confetti
 - **图标库**：Lucide React
 - **代码质检**：Oxlint (0 错误 0 警告)
-- **单元测试**：Vitest (10 个测试套件，49 项测试全量覆盖)
+- **单元测试**：Vitest (10 个测试套件，50 项测试全量覆盖，100% 通过)
 
 ---
 
@@ -90,48 +97,67 @@ npm run build
 
 本项目构建后为纯静态单页应用（SPA），无需任何后端服务或 Docker 容器，不干扰 VPS 现有运行中的其他业务项目。
 
-### 方案 A：使用 Nginx 独立端口托管（推荐）
+### 方案 A：使用 Nginx 托管静态站 + 自建独立信令（推荐）
 
-1. 将 `dist/` 目录上传至 VPS，如 `/var/www/xiangqi`：
+1. **上传静态文件**：
+将 `dist/` 目录上传至 VPS，如 `/var/www/xiangqi`：
 ```bash
 rsync -avz --delete ./dist/ user@your-vps-ip:/var/www/xiangqi/
 ```
 
-2. 在 Nginx 配置目录（如 `/etc/nginx/conf.d/xiangqi.conf`）添加独立配置（选择一个未被占用的端口，例如 `8088`）：
+2. **启动自建 PeerJS 独立信令服务（可选，保障联机高可用）**：
+```bash
+# 在 VPS 上通过 PM2 启动独立信令服务（例如端口 3190）
+npx pm2 start "npx peer --port 3190 --path /peerjs" --name "xiangqi-signaling"
+npx pm2 save
+```
+
+3. **配置 Nginx 站点与 WebSocket 反代**：
+在 Nginx 配置中配置静态目录与 `/peerjs` 反向代理（参考项目内 `deploy/xq.firelu.com.conf`）：
 ```nginx
 server {
-    listen 8088;
-    server_name _;
+    listen 443 ssl;
+    server_name xq.yourdomain.com;
 
     root /var/www/xiangqi;
     index index.html;
+
+    # PeerJS P2P 独立信令中继与 WebSocket 升级
+    location /peerjs {
+        proxy_pass http://127.0.0.1:3190;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 86400s;
+        proxy_send_timeout 86400s;
+    }
 
     location / {
         try_files $uri $uri/ /index.html;
     }
 
-    # 启用 Gzip 压缩以加快棋盘静态资源加载
     gzip on;
     gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
 }
 ```
 
-3. 测试并重载 Nginx（不重启服务，既有业务完全无感）：
+4. **测试并重载 Nginx**：
 ```bash
-sudo nginx -t && sudo nginx -s reload
+sudo nginx -t && sudo systemctl reload nginx
 ```
 
-### 方案 B：使用 Node / PM2 独立进程托管
+### 方案 B：使用 Node / PM2 独立端口托管
 
-无需修改 Nginx，利用轻量静态服务器 `serve` 运行在独立端口：
+无需修改现有 Nginx，利用轻量静态服务器 `serve` 运行在独立端口：
 ```bash
-# 在 VPS 上全局安装 serve（如果尚未安装）
 npm install -g serve pm2
 
 # 启动并托管在指定端口（例如 8088）
 pm2 start "serve -s /var/www/xiangqi -l 8088" --name "xiangqi-game"
-
-# 保存 PM2 进程状态以支持开机自启
 pm2 save
 ```
 
